@@ -10,7 +10,6 @@ export interface KashfaraConfig {
   maxUploadSizeMb: number;
   maxDocumentPages: number;
   defaultWorkloadPages: number;
-  blobReadWriteToken: string;
   isVercel: boolean;
 }
 
@@ -27,7 +26,6 @@ export function getConfig(): KashfaraConfig {
     maxUploadSizeMb: 20,
     maxDocumentPages: 10,
     defaultWorkloadPages: 5,
-    blobReadWriteToken: (process.env.BLOB_READ_WRITE_TOKEN || "").trim(),
     isVercel: Boolean(process.env.VERCEL),
   };
 }

@@ -93,7 +93,7 @@ export function DocumentWorkspaceView({
       const res = await fetch("/api/documents/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ document_id: doc.id }),
+        body: JSON.stringify({ document: doc }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Processing failed.");
@@ -112,6 +112,8 @@ export function DocumentWorkspaceView({
     try {
       const res = await fetch(`/api/documents/${doc.id}/digitalize`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Digitalisation failed.");
@@ -132,6 +134,7 @@ export function DocumentWorkspaceView({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          document: doc,
           field_id: field.field_id,
           verification_status: "VERIFIED",
           visually_verified: true,

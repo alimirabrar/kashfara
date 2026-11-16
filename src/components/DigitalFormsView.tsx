@@ -40,6 +40,8 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
     try {
       const res = await fetch(`/api/documents/${activeDoc.id}/digitalize`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: activeDoc }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Digitalisation failed.");

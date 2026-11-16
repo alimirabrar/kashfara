@@ -1,20 +1,16 @@
 import { NextResponse } from "next/server";
-import { store } from "@/services/storage/store";
 import { AnswerGenerator } from "@/services/qa/answer-generator";
 import { NoEligibleProviderError } from "@/services/ai/inference-orchestrator";
+import type { DocumentRecord } from "@/types/kashfara";
 
-export async function POST(
-  req: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function POST(req: Request) {
   try {
-    const { id } = await context.params;
-    const doc = await store.getDocument(id);
+    const body = (await req.json()) as { question?: string; document?: DocumentRecord };
+    const doc = body.document;
     if (!doc) {
-      return NextResponse.json({ error: "Document not found." }, { status: 404 });
+      return NextResponse.json({ error: "Missing document payload." }, { status: 400 });
     }
 
-    const body = (await req.json()) as { question?: string };
     const question = (body.question || "").trim();
     if (!question) {
       return NextResponse.json({ error: "Question cannot be empty." }, { status: 400 });
@@ -25,14 +21,12 @@ export async function POST(
       question
     );
 
-    doc.qa_history.push(userMessage, assistantMessage);
-    doc.updated_at = new Date().toISOString();
-    await store.saveDocument(doc);
+    const updatedHistory = [...(doc.qa_history || []), userMessage, assistantMessage];
 
     return NextResponse.json({
       userMessage,
       assistantMessage,
-      qa_history: doc.qa_history,
+      qa_history: updatedHistory,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Q&A failed.";

@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
-import { store } from "@/services/storage/store";
 import { FormDigitalizer } from "@/services/documents/form-digitalizer";
 import { NoEligibleProviderError } from "@/services/ai/inference-orchestrator";
-import type { DigitalFormSchema } from "@/types/kashfara";
+import type { DigitalFormSchema, DocumentRecord } from "@/types/kashfara";
 
-export async function POST(
-  _req: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function POST(req: Request) {
   try {
-    const { id } = await context.params;
-    const doc = await store.getDocument(id);
+    const body = (await req.json()) as { document?: DocumentRecord };
+    const doc = body.document;
     if (!doc) {
-      return NextResponse.json({ error: "Document not found." }, { status: 404 });
+      return NextResponse.json({ error: "Missing document payload." }, { status: 400 });
     }
 
     const res = await FormDigitalizer.digitalize(doc);
@@ -29,7 +25,6 @@ export async function POST(
       output_tokens: res.output_tokens,
       timestamp: new Date().toISOString(),
     });
-    await store.saveDocument(doc);
 
     return NextResponse.json({
       digital_form: doc.digital_form,
@@ -44,24 +39,10 @@ export async function POST(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
-  const doc = await store.getDocument(id);
-  if (!doc) {
-    return NextResponse.json({ error: "Document not found." }, { status: 404 });
-  }
-
+export async function PATCH(req: Request) {
   const body = (await req.json()) as { digital_form?: DigitalFormSchema };
   if (!body.digital_form) {
     return NextResponse.json({ error: "Missing digital_form payload." }, { status: 400 });
   }
-
-  doc.digital_form = body.digital_form;
-  doc.updated_at = new Date().toISOString();
-  await store.saveDocument(doc);
-
-  return NextResponse.json({ digital_form: doc.digital_form });
+  return NextResponse.json({ digital_form: body.digital_form });
 }

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { InferenceOrchestrator } from "@/services/ai/inference-orchestrator";
-import { store } from "@/services/storage/store";
+import { getPageImageForVision } from "@/services/documents/page-image";
 import { QARetrieval } from "./retrieval";
 import { CitationValidator } from "./citation-validator";
 import type { DocumentRecord, QACitation, QAMessage } from "@/types/kashfara";
@@ -30,11 +30,9 @@ export const AnswerGenerator = {
 
     for (const pageNum of retrieved.relevantPages) {
       const page = doc.pages.find((p) => p.page_number === pageNum);
-      if (page?.image_path) {
-        const b64 = await store.readPageImageBase64(page.image_path);
-        if (b64) {
-          images.push({ base64: b64, mimeType: page.mime_type || "image/png" });
-        }
+      if (page) {
+        const img = await getPageImageForVision(page);
+        if (img) images.push(img);
       }
     }
 

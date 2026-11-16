@@ -50,12 +50,11 @@ export function UploadDropzone({
         throw new Error(upJson.error || "Document upload failed.");
       }
 
-      const docId = upJson.document.id as string;
-      setStageText("Running AI classification, extraction & evidence verification...");
+      setStageText("Running Kashfara multimodal intelligence...");
       const procRes = await fetch("/api/documents/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ document_id: docId }),
+        body: JSON.stringify({ document: upJson.document }),
       });
       const procJson = await procRes.json();
 

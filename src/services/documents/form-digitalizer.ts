@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { InferenceOrchestrator } from "@/services/ai/inference-orchestrator";
-import { store } from "@/services/storage/store";
+import { getPageImageForVision } from "./page-image";
 import type {
   DigitalFormField,
   DigitalFormSchema,
@@ -44,12 +44,8 @@ export const FormDigitalizer = {
   }> {
     const images: Array<{ base64: string; mimeType: string }> = [];
     for (const page of doc.pages.slice(0, 4)) {
-      if (page.image_path) {
-        const b64 = await store.readPageImageBase64(page.image_path);
-        if (b64) {
-          images.push({ base64: b64, mimeType: page.mime_type || "image/png" });
-        }
-      }
+      const img = await getPageImageForVision(page);
+      if (img) images.push(img);
     }
 
     const existingFieldsSummary = doc.fields

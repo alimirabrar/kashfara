@@ -36,7 +36,7 @@ export function DocumentQAView({
       const res = await fetch(`/api/documents/${activeDoc.id}/qa`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: qText }),
+        body: JSON.stringify({ question: qText, document: activeDoc }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Q&A request failed.");

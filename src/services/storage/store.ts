@@ -40,47 +40,6 @@ async function writeJsonFile<T>(filePath: string, data: T): Promise<void> {
 export const store = {
   getRoot: getDataRoot,
 
-  async saveUploadedFile(
-    docId: string,
-    filename: string,
-    buffer: Buffer
-  ): Promise<{ localPath: string; blobUrl?: string }> {
-    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const docDir = path.join(getDataRoot(), "documents", docId);
-    await ensureDir(docDir);
-    const localPath = path.join(docDir, `original_${safeName}`);
-    await fs.writeFile(localPath, buffer);
-
-    const cfg = getConfig();
-    let blobUrl: string | undefined;
-    if (cfg.blobReadWriteToken) {
-      try {
-        const { put } = await import("@vercel/blob");
-        const blob = await put(`kashfara/${docId}/${safeName}`, buffer, {
-          access: "private",
-          token: cfg.blobReadWriteToken,
-        });
-        blobUrl = blob.url;
-      } catch {
-        // Fallback to local/tmp path if blob upload fails
-      }
-    }
-    return { localPath, blobUrl };
-  },
-
-  async savePageImage(
-    docId: string,
-    pageNumber: number,
-    buffer: Buffer,
-    ext: "png" | "jpg" | "webp" = "png"
-  ): Promise<string> {
-    const pagesDir = path.join(getDataRoot(), "documents", docId, "pages");
-    await ensureDir(pagesDir);
-    const filePath = path.join(pagesDir, `page_${pageNumber}.${ext}`);
-    await fs.writeFile(filePath, buffer);
-    return filePath;
-  },
-
   async readPageImageBase64(imagePath: string): Promise<string | null> {
     try {
       const buf = await fs.readFile(imagePath);
@@ -98,9 +57,8 @@ export const store = {
     }
   },
 
-  async saveDocument(doc: DocumentRecord): Promise<void> {
-    const docPath = path.join(getDataRoot(), "documents", doc.id, "record.json");
-    await writeJsonFile(docPath, doc);
+  async saveDocument(_doc: DocumentRecord): Promise<void> {
+    // Stateless one-time upload mode: documents live in client session state
   },
 
   async getDocument(docId: string): Promise<DocumentRecord | null> {
@@ -110,54 +68,19 @@ export const store = {
   },
 
   async listDocuments(): Promise<DocumentRecord[]> {
-    const docsDir = path.join(getDataRoot(), "documents");
-    try {
-      const entries = await fs.readdir(docsDir, { withFileTypes: true });
-      const results: DocumentRecord[] = [];
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-        const rec = await readJsonFile<DocumentRecord>(
-          path.join(docsDir, entry.name, "record.json")
-        );
-        if (rec) results.push(rec);
-      }
-      return results.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-    } catch {
-      return [];
-    }
+    return [];
   },
 
-  async deleteDocument(docId: string): Promise<boolean> {
-    const safeId = docId.replace(/[^a-zA-Z0-9_-]/g, "");
-    const doc = await this.getDocument(safeId);
-    if (!doc) return false;
-
-    const cfg = getConfig();
-    if (doc.blob_url && cfg.blobReadWriteToken) {
-      try {
-        const { del } = await import("@vercel/blob");
-        await del(doc.blob_url, { token: cfg.blobReadWriteToken });
-      } catch {
-        // Continue local deletion even if remote blob deletion fails
-      }
-    }
-
-    const docDir = path.join(getDataRoot(), "documents", safeId);
-    await fs.rm(docDir, { recursive: true, force: true });
+  async deleteDocument(_docId: string): Promise<boolean> {
     return true;
   },
 
-  async saveJob(job: ProcessingJob): Promise<void> {
-    const jobPath = path.join(getDataRoot(), "jobs", `${job.job_id}.json`);
-    await writeJsonFile(jobPath, job);
+  async saveJob(_job: ProcessingJob): Promise<void> {
+    // Stateless mode
   },
 
-  async getJob(jobId: string): Promise<ProcessingJob | null> {
-    const safeId = jobId.replace(/[^a-zA-Z0-9_-]/g, "");
-    const jobPath = path.join(getDataRoot(), "jobs", `${safeId}.json`);
-    return readJsonFile<ProcessingJob>(jobPath);
+  async getJob(_jobId: string): Promise<ProcessingJob | null> {
+    return null;
   },
 
   async getLedger(dateStr: string): Promise<DailyUsageLedgerState> {
@@ -181,16 +104,24 @@ export const store = {
   },
 
   async saveLedger(ledger: DailyUsageLedgerState): Promise<void> {
-    const ledgerPath = path.join(getDataRoot(), "ledger", `${ledger.date}.json`);
-    await writeJsonFile(ledgerPath, ledger);
+    try {
+      const ledgerPath = path.join(getDataRoot(), "ledger", `${ledger.date}.json`);
+      await writeJsonFile(ledgerPath, ledger);
+    } catch {
+      // Best-effort telemetry in serverless
+    }
   },
 
   async saveProviderCache(providers: ProviderEligibility[]): Promise<void> {
-    const cachePath = path.join(getDataRoot(), "providers_cache.json");
-    await writeJsonFile(cachePath, {
-      updated_at: new Date().toISOString(),
-      providers,
-    });
+    try {
+      const cachePath = path.join(getDataRoot(), "providers_cache.json");
+      await writeJsonFile(cachePath, {
+        updated_at: new Date().toISOString(),
+        providers,
+      });
+    } catch {
+      // Best-effort cache
+    }
   },
 
   async getProviderCache(): Promise<{

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell, type NavSection } from "./AppShell";
 import { OverviewView } from "./OverviewView";
 import { DocumentWorkspaceView } from "./DocumentWorkspaceView";
@@ -15,35 +15,43 @@ import type {
   ProviderEligibility,
 } from "@/types/kashfara";
 
-interface DocSummary {
-  id: string;
-  filename: string;
-  format: string;
-  size_bytes: number;
-  page_count: number;
-  status: string;
-  classification?: { document_type: string; language: string; is_form?: boolean };
-  fields_count: number;
-  tables_count: number;
-  created_at: string;
-  updated_at: string;
-  total_processing_ms?: number;
-}
-
 export function KashfaraApp() {
   const [activeNav, setActiveNav] = useState<NavSection>("overview");
   const [providers, setProviders] = useState<ProviderEligibility[]>([]);
   const [ledger, setLedger] = useState<DailyUsageLedgerState | null>(null);
   const [capacity, setCapacity] = useState<CapacityEstimate | null>(null);
-  const [documents, setDocuments] = useState<DocSummary[]>([]);
-  const [activeDoc, setActiveDoc] = useState<DocumentRecord | null>(null);
+  const [sessionDocs, setSessionDocs] = useState<DocumentRecord[]>([]);
+  const [activeDocId, setActiveDocId] = useState<string | null>(null);
+
+  const activeDoc = useMemo(
+    () => sessionDocs.find((d) => d.id === activeDocId) || null,
+    [sessionDocs, activeDocId]
+  );
+
+  const docSummaries = useMemo(
+    () =>
+      sessionDocs.map((d) => ({
+        id: d.id,
+        filename: d.filename,
+        format: d.format,
+        size_bytes: d.size_bytes,
+        page_count: d.page_count,
+        status: d.status,
+        classification: d.classification,
+        fields_count: d.fields.length,
+        tables_count: d.tables.length,
+        created_at: d.created_at,
+        updated_at: d.updated_at,
+        total_processing_ms: d.total_processing_ms,
+      })),
+    [sessionDocs]
+  );
 
   const loadDashboardData = useCallback(async (refreshProviders = false) => {
     try {
-      const [provRes, usageRes, docsRes] = await Promise.all([
+      const [provRes, usageRes] = await Promise.all([
         fetch(`/api/providers${refreshProviders ? "?refresh=true" : ""}`),
         fetch("/api/usage/daily"),
-        fetch("/api/documents"),
       ]);
 
       if (provRes.ok) {
@@ -55,11 +63,6 @@ export function KashfaraApp() {
         const uJson = await usageRes.json();
         setLedger(uJson.ledger || null);
         setCapacity(uJson.capacity || null);
-      }
-
-      if (docsRes.ok) {
-        const dJson = await docsRes.json();
-        setDocuments(dJson.documents || []);
       }
     } catch {
       // Keep UI resilient
@@ -79,31 +82,36 @@ export function KashfaraApp() {
     };
   }, [loadDashboardData]);
 
-  async function openDocument(docId: string, targetNav: NavSection = "workspace") {
-    const res = await fetch(`/api/documents/${docId}`);
-    if (res.ok) {
-      const json = await res.json();
-      setActiveDoc(json.document);
-      setActiveNav(targetNav);
-    }
+  function openDocument(docId: string, targetNav: NavSection = "workspace") {
+    setActiveDocId(docId);
+    setActiveNav(targetNav);
   }
 
   async function deleteDocument(docId: string) {
-    const res = await fetch(`/api/documents/${docId}`, { method: "DELETE" });
-    if (res.ok) {
-      if (activeDoc?.id === docId) setActiveDoc(null);
-      await loadDashboardData(false);
-    }
+    setSessionDocs((prev) => prev.filter((d) => d.id !== docId));
+    if (activeDocId === docId) setActiveDocId(null);
+  }
+
+  function upsertSessionDoc(doc: DocumentRecord) {
+    setSessionDocs((prev) => {
+      const exists = prev.some((d) => d.id === doc.id);
+      if (exists) {
+        return prev.map((d) => (d.id === doc.id ? doc : d));
+      }
+      return [doc, ...prev];
+    });
   }
 
   function handleUploadedAndProcessed(doc: DocumentRecord) {
-    setActiveDoc(doc);
+    upsertSessionDoc(doc);
+    setActiveDocId(doc.id);
     setActiveNav("workspace");
     void loadDashboardData(false);
   }
 
   function handleDocumentUpdated(doc: DocumentRecord) {
-    setActiveDoc(doc);
+    upsertSessionDoc(doc);
+    setActiveDocId(doc.id);
     void loadDashboardData(false);
   }
 
@@ -124,10 +132,10 @@ export function KashfaraApp() {
           ledger={ledger}
           capacity={capacity}
           providers={providers}
-          documents={documents}
+          documents={docSummaries}
           onRefresh={() => void loadDashboardData(true)}
           onUploadedAndProcessed={handleUploadedAndProcessed}
-          onOpenDocument={(id) => void openDocument(id, "workspace")}
+          onOpenDocument={(id) => openDocument(id, "workspace")}
         />
       )}
 
@@ -142,17 +150,17 @@ export function KashfaraApp() {
 
       {activeNav === "history" && (
         <ExtractionHistoryView
-          documents={documents}
-          onOpenDocument={(id) => void openDocument(id, "workspace")}
+          documents={docSummaries}
+          onOpenDocument={(id) => openDocument(id, "workspace")}
           onDeleteDocument={deleteDocument}
         />
       )}
 
       {activeNav === "qa" && (
         <DocumentQAView
-          documents={documents}
+          documents={docSummaries}
           activeDoc={activeDoc}
-          onSelectDocument={(id) => void openDocument(id, "qa")}
+          onSelectDocument={(id) => openDocument(id, "qa")}
           onDocumentUpdated={handleDocumentUpdated}
         />
       )}

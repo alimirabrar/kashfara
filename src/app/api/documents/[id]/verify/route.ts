@@ -1,23 +1,19 @@
 import { NextResponse } from "next/server";
-import { store } from "@/services/storage/store";
 import { EvidenceValidator } from "@/services/evidence/evidence-validator";
+import type { DocumentRecord } from "@/types/kashfara";
 
-export async function POST(
-  req: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
-  const doc = await store.getDocument(id);
-  if (!doc) {
-    return NextResponse.json({ error: "Document not found." }, { status: 404 });
-  }
-
-  // Allow manual visual verification override for a specific field_id, or full re-validation
+export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
+    document?: DocumentRecord;
     field_id?: string;
     verification_status?: "VERIFIED" | "NEEDS_REVIEW" | "NOT_FOUND";
     visually_verified?: boolean;
   };
+
+  const doc = body.document;
+  if (!doc) {
+    return NextResponse.json({ error: "Missing document payload." }, { status: 400 });
+  }
 
   if (body.field_id && body.verification_status) {
     doc.fields = doc.fields.map((f) =>
@@ -38,7 +34,6 @@ export async function POST(
   }
 
   doc.updated_at = new Date().toISOString();
-  await store.saveDocument(doc);
 
   return NextResponse.json({
     fields: doc.fields,

@@ -61,28 +61,19 @@ export const QuotaAwareRouter = {
       if (p.provider_source === "groq_direct" || p.provider_source === "openrouter") {
         score += 10;
       } else if (p.provider_source === "gemini_fallback") {
-        score -= 4;
+        score += 4;
       }
 
-      if (
-        opts.task === "key_value_extraction" ||
-        opts.task === "table_extraction" ||
-        opts.task === "stamp_signature_identification"
-      ) {
-        if (/maverick|gemini-2\.5|qwen2\.5-vl|qwen3-vl/i.test(p.model)) {
-          score += 12;
-        }
-      }
-
-      if (opts.task === "document_classification" || opts.task === "form_detection") {
-        if (/scout|flash/i.test(p.model)) {
-          score += 6;
-        }
+      // Strongest models for Arabic, unstructured documents, and dense extraction
+      if (/gemini-2\.5-flash|gemini-2\.0-flash|qwen2\.5-vl|qwen3-vl|llama-4-maverick/i.test(p.model)) {
+        score += 14;
       }
 
       if (opts.requiresArabic || opts.task === "arabic_english_understanding") {
-        if (caps.supports_arabic) score += 10;
-        else score -= 20;
+        if (caps.supports_arabic) score += 12;
+        else score -= 25;
+        // Gemini & Qwen-VL excel at Arabic RTL OCR & mixed Arabic-English layouts
+        if (/gemini|qwen/i.test(p.model)) score += 10;
       }
 
       if (p.health_status === "healthy") score += 5;

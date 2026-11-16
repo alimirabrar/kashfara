@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { getConfig } from "@/lib/config";
-import { store } from "@/services/storage/store";
 import { DocumentIngestion } from "@/services/documents/ingestion";
 import { OfficeParser } from "@/services/documents/office-parser";
 import type { DocumentPage, DocumentRecord } from "@/types/kashfara";
@@ -21,21 +20,19 @@ export async function POST(req: Request) {
     const validated = DocumentIngestion.validateFile(file.name, file.type, buffer);
 
     const docId = `doc_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
-    const saved = await store.saveUploadedFile(docId, file.name, buffer);
-
     let pages: DocumentPage[] = [];
 
     if (validated.format === "pdf") {
-      // Check if client supplied rendered PNG pages from pdfjs-dist
-      const pageFiles = formData.getAll("rendered_pages").filter((v): v is File => v instanceof File);
+      const pageFiles = formData
+        .getAll("rendered_pages")
+        .filter((v): v is File => v instanceof File);
       const roughCount = DocumentIngestion.countPdfPagesRough(buffer);
       const pageCount = pageFiles.length > 0 ? pageFiles.length : roughCount;
 
       if (pageCount > cfg.maxDocumentPages) {
-        await store.deleteDocument(docId);
         return NextResponse.json(
           {
-            error: `PDF has ${pageCount} pages, exceeding MAX_DOCUMENT_PAGES (${cfg.maxDocumentPages}).`,
+            error: `PDF has ${pageCount} pages, exceeding maximum (${cfg.maxDocumentPages} pages).`,
           },
           { status: 400 }
         );
@@ -45,18 +42,16 @@ export async function POST(req: Request) {
         for (let i = 0; i < pageFiles.length; i++) {
           const pBuf = Buffer.from(await pageFiles[i].arrayBuffer());
           const prep = await DocumentIngestion.prepareImageForStorageAndVision(pBuf);
-          const pPath = await store.savePageImage(docId, i + 1, prep.pngBuffer, "png");
+          const dataUrl = `data:image/png;base64,${prep.pngBuffer.toString("base64")}`;
           pages.push({
             page_number: i + 1,
             width: prep.width,
             height: prep.height,
-            image_path: pPath,
-            image_url: `/api/documents/${docId}/pages/${i + 1}`,
+            image_url: dataUrl,
             mime_type: "image/png",
           });
         }
       } else {
-        // Metadata-only pages until client renders or uploads page images
         for (let i = 1; i <= pageCount; i++) {
           pages.push({
             page_number: i,
@@ -74,14 +69,13 @@ export async function POST(req: Request) {
       validated.format === "tiff"
     ) {
       const prep = await DocumentIngestion.prepareImageForStorageAndVision(buffer);
-      const pPath = await store.savePageImage(docId, 1, prep.pngBuffer, "png");
+      const dataUrl = `data:image/png;base64,${prep.pngBuffer.toString("base64")}`;
       pages = [
         {
           page_number: 1,
           width: prep.width,
           height: prep.height,
-          image_path: pPath,
-          image_url: `/api/documents/${docId}/pages/1`,
+          image_url: dataUrl,
           mime_type: "image/png",
         },
       ];
@@ -94,10 +88,9 @@ export async function POST(req: Request) {
     }
 
     if (pages.length > cfg.maxDocumentPages) {
-      await store.deleteDocument(docId);
       return NextResponse.json(
         {
-          error: `Document has ${pages.length} pages/slides/sheets, exceeding MAX_DOCUMENT_PAGES (${cfg.maxDocumentPages}).`,
+          error: `Document has ${pages.length} pages, exceeding maximum (${cfg.maxDocumentPages}).`,
         },
         { status: 400 }
       );
@@ -111,8 +104,6 @@ export async function POST(req: Request) {
       format: validated.format,
       size_bytes: validated.sizeBytes,
       page_count: pages.length,
-      blob_url: saved.blobUrl,
-      local_file_path: saved.localPath,
       created_at: now,
       updated_at: now,
       status: "uploaded",
@@ -123,11 +114,7 @@ export async function POST(req: Request) {
       processing_logs: [],
     };
 
-    await store.saveDocument(record);
-
-    return NextResponse.json({
-      document: record,
-    });
+    return NextResponse.json({ document: record });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed.";
     return NextResponse.json({ error: message }, { status: 400 });
