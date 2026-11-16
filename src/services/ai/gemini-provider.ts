@@ -6,13 +6,14 @@ import {
   type InferenceResponse,
 } from "./groq-provider";
 
-export const GEMINI_FALLBACK_MODELS = [
+export const GEMINI_MODELS = [
   { id: "gemini-2.5-flash", context_window: 1_000_000 },
   { id: "gemini-2.0-flash", context_window: 1_000_000 },
+  { id: "gemini-2.5-flash-lite", context_window: 1_000_000 },
 ];
 
 export const GeminiProvider = {
-  poolId: "gemini-fallback-account",
+  poolId: "kashfara-gemini-core",
 
   isConfigured(): boolean {
     return Boolean(getConfig().geminiApiKey);
@@ -27,8 +28,8 @@ export const GeminiProvider = {
   }): Promise<InferenceResponse> {
     const cfg = getConfig();
     if (!cfg.geminiApiKey) {
-      throw new ProviderRequestError("GEMINI_API_KEY is not configured", {
-        status: 401,
+      throw new ProviderRequestError("GEMINI_API_KEY is not configured in environment.", {
+        status: 500,
         retryable: false,
         isRateLimit: false,
         provider: "gemini",
@@ -70,7 +71,7 @@ export const GeminiProvider = {
       contents,
       generationConfig: {
         temperature: params.temperature ?? 0.1,
-        maxOutputTokens: params.max_tokens ?? 2500,
+        maxOutputTokens: params.max_tokens ?? 4096,
         ...(params.json_mode ? { responseMimeType: "application/json" } : {}),
       },
     };
@@ -91,7 +92,7 @@ export const GeminiProvider = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(50_000),
+        signal: AbortSignal.timeout(55_000),
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Network timeout";
@@ -115,7 +116,7 @@ export const GeminiProvider = {
       }
       throw new ProviderRequestError(`Gemini inference failed (${res.status}): ${errText}`, {
         status: res.status,
-        retryable: isRateLimit || res.status >= 500 || res.status === 404,
+        retryable: isRateLimit || res.status >= 500 || res.status === 404 || res.status === 400,
         isRateLimit,
         provider: "gemini",
       });
@@ -140,7 +141,7 @@ export const GeminiProvider = {
 
     return {
       content: text,
-      provider: "gemini",
+      provider: "Kashfara Vision",
       model: params.model,
       input_tokens: data.usageMetadata?.promptTokenCount ?? 0,
       output_tokens: data.usageMetadata?.candidatesTokenCount ?? 0,

@@ -1,15 +1,5 @@
-import { ProviderDiscovery } from "./provider-discovery";
-import { QuotaAwareRouter } from "./routing-engine";
-import {
-  GroqProvider,
-  ProviderRequestError,
-  type ChatContentPart,
-  type ChatMessage,
-  type InferenceResponse,
-} from "./groq-provider";
-import { OpenRouterProvider } from "./openrouter-provider";
-import { GeminiProvider } from "./gemini-provider";
-import { FreeTierRegistry } from "./free-tier-registry";
+import { GeminiProvider, GEMINI_MODELS } from "./gemini-provider";
+import { ProviderRequestError, type ChatContentPart, type ChatMessage } from "./groq-provider";
 import { DailyUsageLedger } from "@/services/usage/daily-ledger";
 import type { TaskCategory } from "@/types/kashfara";
 
@@ -75,34 +65,14 @@ export const InferenceOrchestrator = {
     temperature?: number;
     pagesCount?: number;
   }): Promise<OrchestratedResult<T>> {
-    let discovery = await ProviderDiscovery.discoverAll(false);
-    const hasImages = Boolean(params.images && params.images.length > 0);
-    const needsVision = QuotaAwareRouter.requiresVision(params.task, hasImages);
-
-    let candidates = QuotaAwareRouter.rankCandidates(discovery.providers, {
-      task: params.task,
-      requiresVision: needsVision,
-      requiresArabic: params.requiresArabic,
-    });
-
-    if (candidates.length === 0) {
-      // Retry once with forced refresh in case cached health/discovery was stale
-      discovery = await ProviderDiscovery.discoverAll(true);
-      candidates = QuotaAwareRouter.rankCandidates(discovery.providers, {
-        task: params.task,
-        requiresVision: needsVision,
-        requiresArabic: params.requiresArabic,
-      });
-    }
-
-    if (candidates.length === 0) {
-      console.error("[Kashfara] No eligible providers:", discovery.errors);
+    if (!GeminiProvider.isConfigured()) {
       throw new NoEligibleProviderError(
-        "Kashfara Vision Engine is currently unavailable. Please verify engine credentials.",
-        discovery.errors.map((e) => e.message)
+        "GEMINI_API_KEY is not configured in environment variables.",
+        ["Missing GEMINI_API_KEY"]
       );
     }
 
+    const hasImages = Boolean(params.images && params.images.length > 0);
     const userContent: string | ChatContentPart[] = hasImages
       ? [
           { type: "text", text: params.userPrompt },
@@ -127,58 +97,19 @@ export const InferenceOrchestrator = {
       },
     ];
 
-    // Ensure provider diversity: pick top candidates across groq_direct, openrouter, and gemini_fallback
-    const groqCandidates = candidates.filter((c) => c.entry.provider_source === "groq_direct").slice(0, 2);
-    const openrouterCandidates = candidates.filter((c) => c.entry.provider_source === "openrouter").slice(0, 2);
-    const geminiCandidates = candidates.filter((c) => c.entry.provider_source === "gemini_fallback").slice(0, 2);
-
-    const diverseQueue = [
-      ...groqCandidates.slice(0, 1),
-      ...openrouterCandidates.slice(0, 1),
-      ...geminiCandidates.slice(0, 1),
-      ...groqCandidates.slice(1, 2),
-      ...openrouterCandidates.slice(1, 2),
-      ...geminiCandidates.slice(1, 2),
-    ];
-
     const failureNotes: string[] = [];
     let attempts = 0;
 
-    for (const candidate of diverseQueue) {
-      const entry = candidate.entry;
-      const check = FreeTierRegistry.evaluateEligibility(entry);
-      if (!check.eligible_for_routing) {
-        continue;
-      }
-
+    for (const gm of GEMINI_MODELS) {
       attempts += 1;
       try {
-        let res: InferenceResponse;
-        if (entry.provider_source === "groq_direct") {
-          res = await GroqProvider.chatCompletion({
-            model: entry.model,
-            messages,
-            temperature: params.temperature ?? 0.1,
-            max_tokens: params.maxTokens ?? 2500,
-            json_mode: params.expectJson,
-          });
-        } else if (entry.provider_source === "openrouter") {
-          res = await OpenRouterProvider.chatCompletion({
-            model: entry.model,
-            messages,
-            temperature: params.temperature ?? 0.1,
-            max_tokens: params.maxTokens ?? 2500,
-            json_mode: params.expectJson,
-          });
-        } else {
-          res = await GeminiProvider.chatCompletion({
-            model: entry.model,
-            messages,
-            temperature: params.temperature ?? 0.1,
-            max_tokens: params.maxTokens ?? 2500,
-            json_mode: params.expectJson,
-          });
-        }
+        const res = await GeminiProvider.chatCompletion({
+          model: gm.id,
+          messages,
+          temperature: params.temperature ?? 0.1,
+          max_tokens: params.maxTokens ?? 4096,
+          json_mode: params.expectJson,
+        });
 
         let parsed: T | null = null;
         if (params.expectJson) {
@@ -187,7 +118,7 @@ export const InferenceOrchestrator = {
             await DailyUsageLedger.recordInference({
               provider: "kashfara-engine",
               model: "kashfara-multimodal",
-              shared_quota_pool: entry.shared_quota_pool,
+              shared_quota_pool: GeminiProvider.poolId,
               task: params.task,
               document_id: params.documentId,
               pages_count: params.pagesCount ?? (params.images?.length || 1),
@@ -198,7 +129,7 @@ export const InferenceOrchestrator = {
               rate_limited: false,
               error_message: "Invalid structured JSON output",
             });
-            failureNotes.push("Invalid structured output; trying next route");
+            failureNotes.push(`${gm.id}: Invalid structured JSON output`);
             continue;
           }
         }
@@ -206,7 +137,7 @@ export const InferenceOrchestrator = {
         await DailyUsageLedger.recordInference({
           provider: "kashfara-engine",
           model: "kashfara-multimodal",
-          shared_quota_pool: entry.shared_quota_pool,
+          shared_quota_pool: GeminiProvider.poolId,
           task: params.task,
           document_id: params.documentId,
           pages_count: params.pagesCount ?? (params.images?.length || 1),
@@ -235,7 +166,7 @@ export const InferenceOrchestrator = {
         await DailyUsageLedger.recordInference({
           provider: "kashfara-engine",
           model: "kashfara-multimodal",
-          shared_quota_pool: entry.shared_quota_pool,
+          shared_quota_pool: GeminiProvider.poolId,
           task: params.task,
           document_id: params.documentId,
           pages_count: params.pagesCount ?? (params.images?.length || 1),
@@ -247,13 +178,13 @@ export const InferenceOrchestrator = {
           error_message: msg,
         });
 
-        failureNotes.push(msg);
+        failureNotes.push(`${gm.id}: ${msg}`);
       }
     }
 
-    console.error(`[Kashfara] All routes failed for ${params.task}:`, failureNotes);
+    console.error(`[Kashfara] Gemini direct execution failed for ${params.task}:`, failureNotes);
     throw new NoEligibleProviderError(
-      `Kashfara Vision Engine could not complete task "${params.task}".`,
+      `Kashfara Vision Engine failed for task "${params.task}".`,
       failureNotes
     );
   },
