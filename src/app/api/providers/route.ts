@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { ProviderDiscovery } from "@/services/ai/provider-discovery";
-import { getConfig } from "@/lib/config";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const refresh = url.searchParams.get("refresh") === "true";
-  const cfg = getConfig();
   const discovery = await ProviderDiscovery.discoverAll(refresh);
 
   const eligibleVision = discovery.providers.filter(
@@ -16,7 +14,6 @@ export async function GET(req: Request) {
   );
 
   return NextResponse.json({
-    free_only_mode: cfg.freeOnlyMode,
     discovered_at: discovery.discovered_at,
     summary: {
       total_models: discovery.providers.length,

@@ -1,10 +1,48 @@
 import { getConfig } from "@/lib/config";
 import { ProviderHealthMonitor } from "./provider-health";
-import {
-  ProviderRequestError,
-  type ChatMessage,
-  type InferenceResponse,
-} from "./groq-provider";
+
+export interface ChatContentPart {
+  type: "text" | "image_url";
+  text?: string;
+  image_url?: {
+    url: string;
+    detail?: "auto" | "low" | "high";
+  };
+}
+
+export interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string | ChatContentPart[];
+}
+
+export interface InferenceResponse {
+  content: string;
+  provider: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  latency_ms: number;
+  raw_finish_reason?: string;
+}
+
+export class ProviderRequestError extends Error {
+  status: number;
+  retryable: boolean;
+  isRateLimit: boolean;
+  provider: string;
+
+  constructor(
+    message: string,
+    opts: { status: number; retryable: boolean; isRateLimit: boolean; provider: string }
+  ) {
+    super(message);
+    this.name = "ProviderRequestError";
+    this.status = opts.status;
+    this.retryable = opts.retryable;
+    this.isRateLimit = opts.isRateLimit;
+    this.provider = opts.provider;
+  }
+}
 
 export const GEMINI_MODELS = [
   { id: "gemini-2.5-flash", context_window: 1_000_000 },
