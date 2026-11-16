@@ -21,7 +21,7 @@ export async function renderPdfPagesToPngFiles(
 
   for (let i = 1; i <= pagesToRender; i++) {
     const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 1.75 });
+    const viewport = page.getViewport({ scale: 1.4 });
     const canvas = document.createElement("canvas");
     canvas.width = Math.floor(viewport.width);
     canvas.height = Math.floor(viewport.height);
@@ -31,10 +31,10 @@ export async function renderPdfPagesToPngFiles(
     await page.render({ canvasContext: ctx, viewport, canvas }).promise;
 
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob((b) => resolve(b), "image/png", 0.92)
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.85)
     );
     if (blob) {
-      files.push(new File([blob], `page_${i}.png`, { type: "image/png" }));
+      files.push(new File([blob], `page_${i}.jpg`, { type: "image/jpeg" }));
     }
   }
 

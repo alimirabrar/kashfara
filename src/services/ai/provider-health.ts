@@ -64,11 +64,10 @@ export const ProviderHealthMonitor = {
         last_checked_at: new Date().toISOString(),
       };
     }
-    // Cool down rate_limited status after 60s so it can be re-evaluated
+    // Cool down rate_limited or unavailable status after 30s so transient failures auto-recover
     if (
-      rec.status === "rate_limited" &&
-      rec.last_rate_limit_at &&
-      Date.now() - rec.last_rate_limit_at > 60_000
+      (rec.status === "rate_limited" || rec.status === "unavailable") &&
+      Date.now() - new Date(rec.last_checked_at).getTime() > 30_000
     ) {
       return { ...rec, status: "degraded" };
     }

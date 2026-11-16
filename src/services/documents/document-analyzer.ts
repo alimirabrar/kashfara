@@ -77,7 +77,7 @@ export const DocumentAnalyzer = {
       doc.filename + " " + doc.pages.map((p) => p.text_content || "").join(" ")
     );
 
-    const batchSize = 4;
+    const batchSize = 2;
     for (let i = 0; i < doc.pages.length; i += batchSize) {
       const batch = doc.pages.slice(i, i + batchSize);
       const images: Array<{ base64: string; mimeType: string }> = [];

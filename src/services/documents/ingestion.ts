@@ -92,19 +92,22 @@ export const DocumentIngestion = {
     width: number;
     height: number;
   }> {
-    // Auto-orient from EXIF, convert TIFF/WEBP/etc. to crisp PNG, and cap extreme dimensions (>2200px) for model limits
+    // Auto-orient from EXIF, convert to crisp JPEG, and cap dimensions at 1500px so payloads stay fast & within all vision API limits
     const image = sharp(buffer).rotate();
     const meta = await image.metadata();
     const origW = meta.width || 1024;
     const origH = meta.height || 1440;
 
-    const maxDim = 2048;
+    const maxDim = 1500;
     const pipeline =
       origW > maxDim || origH > maxDim
         ? image.resize({ width: maxDim, height: maxDim, fit: "inside", withoutEnlargement: true })
         : image;
 
-    const { data, info } = await pipeline.png({ compressionLevel: 6 }).toBuffer({ resolveWithObject: true });
+    const { data, info } = await pipeline
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 85, mozjpeg: true })
+      .toBuffer({ resolveWithObject: true });
     return {
       pngBuffer: data,
       width: info.width,

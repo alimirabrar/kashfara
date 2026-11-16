@@ -42,13 +42,13 @@ export async function POST(req: Request) {
         for (let i = 0; i < pageFiles.length; i++) {
           const pBuf = Buffer.from(await pageFiles[i].arrayBuffer());
           const prep = await DocumentIngestion.prepareImageForStorageAndVision(pBuf);
-          const dataUrl = `data:image/png;base64,${prep.pngBuffer.toString("base64")}`;
+          const dataUrl = `data:image/jpeg;base64,${prep.pngBuffer.toString("base64")}`;
           pages.push({
             page_number: i + 1,
             width: prep.width,
             height: prep.height,
             image_url: dataUrl,
-            mime_type: "image/png",
+            mime_type: "image/jpeg",
           });
         }
       } else {
@@ -69,14 +69,14 @@ export async function POST(req: Request) {
       validated.format === "tiff"
     ) {
       const prep = await DocumentIngestion.prepareImageForStorageAndVision(buffer);
-      const dataUrl = `data:image/png;base64,${prep.pngBuffer.toString("base64")}`;
+      const dataUrl = `data:image/jpeg;base64,${prep.pngBuffer.toString("base64")}`;
       pages = [
         {
           page_number: 1,
           width: prep.width,
           height: prep.height,
           image_url: dataUrl,
-          mime_type: "image/png",
+          mime_type: "image/jpeg",
         },
       ];
     } else if (validated.format === "docx") {

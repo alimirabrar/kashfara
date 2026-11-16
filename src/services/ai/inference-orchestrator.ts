@@ -75,17 +75,28 @@ export const InferenceOrchestrator = {
     temperature?: number;
     pagesCount?: number;
   }): Promise<OrchestratedResult<T>> {
-    const discovery = await ProviderDiscovery.discoverAll(false);
+    let discovery = await ProviderDiscovery.discoverAll(false);
     const hasImages = Boolean(params.images && params.images.length > 0);
     const needsVision = QuotaAwareRouter.requiresVision(params.task, hasImages);
 
-    const candidates = QuotaAwareRouter.rankCandidates(discovery.providers, {
+    let candidates = QuotaAwareRouter.rankCandidates(discovery.providers, {
       task: params.task,
       requiresVision: needsVision,
       requiresArabic: params.requiresArabic,
     });
 
     if (candidates.length === 0) {
+      // Retry once with forced refresh in case cached health/discovery was stale
+      discovery = await ProviderDiscovery.discoverAll(true);
+      candidates = QuotaAwareRouter.rankCandidates(discovery.providers, {
+        task: params.task,
+        requiresVision: needsVision,
+        requiresArabic: params.requiresArabic,
+      });
+    }
+
+    if (candidates.length === 0) {
+      console.error("[Kashfara] No eligible providers:", discovery.errors);
       throw new NoEligibleProviderError(
         "Kashfara Vision Engine is currently unavailable. Please verify engine credentials.",
         discovery.errors.map((e) => e.message)
@@ -240,6 +251,7 @@ export const InferenceOrchestrator = {
       }
     }
 
+    console.error(`[Kashfara] All routes failed for ${params.task}:`, failureNotes);
     throw new NoEligibleProviderError(
       `Kashfara Vision Engine could not complete task "${params.task}".`,
       failureNotes
