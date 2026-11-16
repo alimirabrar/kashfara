@@ -83,10 +83,6 @@ export const OpenRouterProvider = {
       max_tokens: params.max_tokens ?? 2500,
     };
 
-    if (params.json_mode) {
-      body.response_format = { type: "json_object" };
-    }
-
     let res: Response;
     try {
       res = await fetch(`${cfg.openrouterBaseUrl}/chat/completions`, {

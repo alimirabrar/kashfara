@@ -3,6 +3,8 @@ import { AnswerGenerator } from "@/services/qa/answer-generator";
 import { NoEligibleProviderError } from "@/services/ai/inference-orchestrator";
 import type { DocumentRecord } from "@/types/kashfara";
 
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as { question?: string; document?: DocumentRecord };

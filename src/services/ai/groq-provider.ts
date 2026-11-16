@@ -124,10 +124,6 @@ export const GroqProvider = {
       max_tokens: params.max_tokens ?? 2048,
     };
 
-    if (params.json_mode) {
-      body.response_format = { type: "json_object" };
-    }
-
     let res: Response;
     try {
       res = await fetch(`${cfg.groqBaseUrl}/chat/completions`, {

@@ -116,10 +116,24 @@ export const InferenceOrchestrator = {
       },
     ];
 
+    // Ensure provider diversity: pick top candidates across groq_direct, openrouter, and gemini_fallback
+    const groqCandidates = candidates.filter((c) => c.entry.provider_source === "groq_direct").slice(0, 2);
+    const openrouterCandidates = candidates.filter((c) => c.entry.provider_source === "openrouter").slice(0, 2);
+    const geminiCandidates = candidates.filter((c) => c.entry.provider_source === "gemini_fallback").slice(0, 2);
+
+    const diverseQueue = [
+      ...groqCandidates.slice(0, 1),
+      ...openrouterCandidates.slice(0, 1),
+      ...geminiCandidates.slice(0, 1),
+      ...groqCandidates.slice(1, 2),
+      ...openrouterCandidates.slice(1, 2),
+      ...geminiCandidates.slice(1, 2),
+    ];
+
     const failureNotes: string[] = [];
     let attempts = 0;
 
-    for (const candidate of candidates.slice(0, 5)) {
+    for (const candidate of diverseQueue) {
       const entry = candidate.entry;
       const check = FreeTierRegistry.evaluateEligibility(entry);
       if (!check.eligible_for_routing) {
