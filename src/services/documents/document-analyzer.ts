@@ -78,7 +78,11 @@ export const DocumentAnalyzer = {
     );
 
     const batchSize = 2;
-    for (let i = 0; i < doc.pages.length; i += batchSize) {
+    const batchStarts: number[] = [];
+    for (let i = 0; i < doc.pages.length; i += batchSize) batchStarts.push(i);
+
+    // Run all page batches in parallel for speed
+    const batchResults = await Promise.all(batchStarts.map(async (i) => {
       const batch = doc.pages.slice(i, i + batchSize);
       const images: Array<{ base64: string; mimeType: string }> = [];
 
@@ -175,10 +179,14 @@ Return ONLY valid JSON:
         images,
         requiresArabic: hasArabicHint,
         expectJson: true,
-        maxTokens: 4000,
+        maxTokens: 16384,
         pagesCount: batch.length,
       });
+      return { i, batch, res };
+    }));
 
+    for (const { i, batch, res } of batchResults) {
+      const isFirstBatch = i === 0;
       totalIn += res.input_tokens;
       totalOut += res.output_tokens;
       totalLatency += res.latency_ms;

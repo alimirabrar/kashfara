@@ -3,7 +3,7 @@ import { AnswerGenerator } from "@/services/qa/answer-generator";
 import { NoEligibleProviderError } from "@/services/ai/inference-orchestrator";
 import type { DocumentRecord } from "@/types/kashfara";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(req: Request) {
   try {

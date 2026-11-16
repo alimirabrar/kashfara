@@ -222,9 +222,9 @@ export function DocumentWorkspaceView({
         </div>
       </div>
 
-      {actionError && (
-        <div className="p-2.5 rounded-lg bg-[#F87171]/10 border border-[#F87171]/35 text-xs text-[#F87171]">
-          {actionError}
+      {(actionError || (doc.status === "failed" && doc.error_message)) && (
+        <div className="p-2.5 rounded-lg bg-[#F87171]/10 border border-[#F87171]/35 text-xs text-[#F87171] break-words">
+          {actionError || doc.error_message}
         </div>
       )}
 

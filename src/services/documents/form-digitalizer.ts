@@ -94,7 +94,7 @@ Return ONLY valid JSON:
       images,
       requiresArabic: doc.classification?.is_rtl,
       expectJson: true,
-      maxTokens: 3500,
+      maxTokens: 16384,
       pagesCount: images.length || doc.page_count,
     });
 

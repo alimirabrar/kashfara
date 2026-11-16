@@ -3,7 +3,7 @@ import { FormDigitalizer } from "@/services/documents/form-digitalizer";
 import { NoEligibleProviderError } from "@/services/ai/inference-orchestrator";
 import type { DigitalFormSchema, DocumentRecord } from "@/types/kashfara";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(req: Request) {
   try {

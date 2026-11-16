@@ -59,12 +59,12 @@ export function UploadDropzone({
       const procJson = await procRes.json();
 
       if (!procRes.ok) {
-        // Still pass uploaded document so user can inspect or retry
-        onUploadedAndProcessed(upJson.document);
-        const reasons = Array.isArray(procJson.reasons)
-          ? ` (${procJson.reasons.slice(0, 2).join("; ")})`
-          : "";
-        throw new Error((procJson.error || "Processing failed.") + reasons);
+        const reasons: string[] = Array.isArray(procJson.reasons) ? procJson.reasons : [];
+        const detail = reasons.length ? ` — ${reasons[reasons.length - 1]}` : "";
+        const message = (procJson.error || "Processing failed.") + detail;
+        // Keep the uploaded document so the user can retry from the workspace, with the error visible
+        onUploadedAndProcessed({ ...upJson.document, status: "failed", error_message: message });
+        throw new Error(message);
       }
 
       onUploadedAndProcessed(procJson.document);

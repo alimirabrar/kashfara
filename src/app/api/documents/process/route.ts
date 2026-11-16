@@ -6,7 +6,7 @@ import { DailyUsageLedger } from "@/services/usage/daily-ledger";
 import { NoEligibleProviderError } from "@/services/ai/inference-orchestrator";
 import type { DocumentRecord } from "@/types/kashfara";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(req: Request) {
   const jobId = `job_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
