@@ -7,7 +7,6 @@ import { DocumentWorkspaceView } from "./DocumentWorkspaceView";
 import { ExtractionHistoryView } from "./ExtractionHistoryView";
 import { DocumentQAView } from "./DocumentQAView";
 import { DigitalFormsView } from "./DigitalFormsView";
-import { ApiPlaygroundView } from "./ApiPlaygroundView";
 import { SettingsView } from "./SettingsView";
 import type {
   CapacityEstimate,
@@ -33,11 +32,7 @@ interface DocSummary {
 
 export function KashfaraApp() {
   const [activeNav, setActiveNav] = useState<NavSection>("overview");
-  const [freeOnlyMode, setFreeOnlyMode] = useState(true);
   const [providers, setProviders] = useState<ProviderEligibility[]>([]);
-  const [providerErrors, setProviderErrors] = useState<Array<{ source: string; message: string }>>(
-    []
-  );
   const [ledger, setLedger] = useState<DailyUsageLedgerState | null>(null);
   const [capacity, setCapacity] = useState<CapacityEstimate | null>(null);
   const [documents, setDocuments] = useState<DocSummary[]>([]);
@@ -53,9 +48,7 @@ export function KashfaraApp() {
 
       if (provRes.ok) {
         const pJson = await provRes.json();
-        setFreeOnlyMode(Boolean(pJson.free_only_mode));
         setProviders(pJson.providers || []);
-        setProviderErrors(pJson.errors || []);
       }
 
       if (usageRes.ok) {
@@ -122,7 +115,6 @@ export function KashfaraApp() {
     <AppShell
       activeNav={activeNav}
       onSelectNav={setActiveNav}
-      freeOnlyMode={freeOnlyMode}
       eligibleVisionCount={eligibleVisionCount}
       dailyDocsProcessed={ledger?.documents_processed_today ?? 0}
       dailyTarget={capacity?.daily_document_target ?? 30}
@@ -132,7 +124,6 @@ export function KashfaraApp() {
           ledger={ledger}
           capacity={capacity}
           providers={providers}
-          providerErrors={providerErrors}
           documents={documents}
           onRefresh={() => void loadDashboardData(true)}
           onUploadedAndProcessed={handleUploadedAndProcessed}
@@ -174,11 +165,8 @@ export function KashfaraApp() {
         />
       )}
 
-      {activeNav === "playground" && <ApiPlaygroundView />}
-
       {activeNav === "settings" && (
         <SettingsView
-          freeOnlyMode={freeOnlyMode}
           providers={providers}
           onRefreshProviders={() => void loadDashboardData(true)}
         />

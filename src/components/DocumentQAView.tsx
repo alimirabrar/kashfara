@@ -109,11 +109,7 @@ export function DocumentQAView({
                 >
                   <div className="flex items-center justify-between text-[10px] font-mono text-[#91A3B6]">
                     <span>{msg.role === "user" ? "OPERATOR" : "KASHFARA GROUNDED AI"}</span>
-                    {msg.provider_used && (
-                      <span>
-                        {msg.provider_used} / {msg.model_used}
-                      </span>
-                    )}
+                    {msg.role === "assistant" && <span>Kashfara Vision Core</span>}
                   </div>
                   <div dir="auto" className="text-[#E8F0F7] whitespace-pre-wrap leading-relaxed">
                     {msg.content}

@@ -7,7 +7,6 @@ import {
   History,
   MessageSquareQuote,
   FileSpreadsheet,
-  TerminalSquare,
   Settings,
   ShieldCheck,
   Cpu,
@@ -20,33 +19,33 @@ export type NavSection =
   | "history"
   | "qa"
   | "forms"
-  | "playground"
   | "settings";
 
 interface AppShellProps {
   activeNav: NavSection;
   onSelectNav: (nav: NavSection) => void;
-  freeOnlyMode: boolean;
   eligibleVisionCount: number;
   dailyDocsProcessed: number;
   dailyTarget: number;
   children: React.ReactNode;
 }
 
-const NAV_ITEMS: Array<{ id: NavSection; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+const NAV_ITEMS: Array<{
+  id: NavSection;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}> = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "workspace", label: "Document Workspace", icon: ScanSearch },
   { id: "history", label: "Extraction History", icon: History },
   { id: "qa", label: "Document Q&A", icon: MessageSquareQuote },
   { id: "forms", label: "Digital Forms", icon: FileSpreadsheet },
-  { id: "playground", label: "API Playground", icon: TerminalSquare },
-  { id: "settings", label: "Settings", icon: Settings },
+  { id: "settings", label: "Platform Settings", icon: Settings },
 ];
 
 export function AppShell({
   activeNav,
   onSelectNav,
-  freeOnlyMode,
   eligibleVisionCount,
   dailyDocsProcessed,
   dailyTarget,
@@ -65,7 +64,7 @@ export function AppShell({
               KASHFARA <span className="text-[#40E9E1]">VISION</span>
             </div>
             <div className="text-[10px] font-mono uppercase tracking-widest text-[#91A3B6]">
-              Doc Intelligence
+              Enterprise Doc AI
             </div>
           </div>
         </div>
@@ -85,7 +84,12 @@ export function AppShell({
                     : "text-[#91A3B6] hover:text-[#E8F0F7] hover:bg-[#101A27] border border-transparent"
                 )}
               >
-                <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-[#40E9E1]" : "text-[#91A3B6]")} />
+                <Icon
+                  className={cn(
+                    "w-4 h-4 shrink-0",
+                    isActive ? "text-[#40E9E1]" : "text-[#91A3B6]"
+                  )}
+                />
                 <span>{item.label}</span>
               </button>
             );
@@ -96,31 +100,24 @@ export function AppShell({
           <div className="flex items-center justify-between">
             <span className="text-[#91A3B6] flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-[#32D6A0]" />
-              Strict Free Mode
+              Kashfara Security
             </span>
-            <span
-              className={cn(
-                "font-mono px-1.5 py-0.5 rounded text-[10px]",
-                freeOnlyMode
-                  ? "bg-[#32D6A0]/15 text-[#32D6A0] border border-[#32D6A0]/30"
-                  : "bg-[#F6B94A]/15 text-[#F6B94A] border border-[#F6B94A]/30"
-              )}
-            >
-              {freeOnlyMode ? "ON" : "OFF"}
+            <span className="font-mono px-1.5 py-0.5 rounded text-[10px] bg-[#32D6A0]/15 text-[#32D6A0] border border-[#32D6A0]/30">
+              ACTIVE
             </span>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="text-[#91A3B6] flex items-center gap-1.5">
               <Cpu className="w-3.5 h-3.5 text-[#40E9E1]" />
-              Vision Models
+              Vision Cores
             </span>
             <span className="font-mono text-[#E8F0F7]">{eligibleVisionCount}</span>
           </div>
 
           <div className="pt-1">
             <div className="flex justify-between text-[11px] text-[#91A3B6] mb-1">
-              <span>Daily Target</span>
+              <span>Daily Volume</span>
               <span className="font-mono text-[#E8F0F7]">
                 {dailyDocsProcessed}/{dailyTarget}
               </span>
@@ -129,7 +126,10 @@ export function AppShell({
               <div
                 className="h-full bg-gradient-to-r from-[#1FBFCA] to-[#40E9E1] transition-all"
                 style={{
-                  width: `${Math.min(100, Math.round((dailyDocsProcessed / Math.max(1, dailyTarget)) * 100))}%`,
+                  width: `${Math.min(
+                    100,
+                    Math.round((dailyDocsProcessed / Math.max(1, dailyTarget)) * 100)
+                  )}%`,
                 }}
               />
             </div>
@@ -146,7 +146,7 @@ export function AppShell({
             </span>
             <span className="text-[#91A3B6]/40">|</span>
             <span className="text-xs text-[#91A3B6]">
-              Evidence-Backed Multimodal Document Intelligence
+              Multimodal Document Intelligence &amp; Proofing Workstation
             </span>
           </div>
           <div className="flex items-center gap-3 text-xs font-mono">
@@ -165,8 +165,8 @@ export function AppShell({
                 )}
               />
               {eligibleVisionCount > 0
-                ? `${eligibleVisionCount} FREE VISION READY`
-                : "NO PROVIDER CONFIGURED"}
+                ? "KASHFARA ENGINE ONLINE"
+                : "ENGINE STANDBY"}
             </span>
           </div>
         </header>

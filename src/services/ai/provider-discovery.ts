@@ -1,5 +1,6 @@
 import { GroqProvider } from "./groq-provider";
-import { OmniRouteProvider, type OmniRouteRawModel } from "./omniroute-provider";
+import { OpenRouterProvider, type OpenRouterRawModel } from "./openrouter-provider";
+import { GeminiProvider, GEMINI_FALLBACK_MODELS } from "./gemini-provider";
 import { ModelCapabilityRegistry } from "./model-capabilities";
 import { ProviderTermsRegistry } from "./provider-terms";
 import { ProviderQuotaManager } from "./quota-manager";
@@ -14,40 +15,18 @@ export interface DiscoveryResult {
   discovered_at: string;
 }
 
-function inferOmniRouteFreeTier(raw: OmniRouteRawModel): {
+function inferOpenRouterFreeTier(raw: OpenRouterRawModel): {
   is_free: boolean;
   free_tier_type: FreeTierType;
   payment_required: boolean;
 } {
-  if (raw.is_free === true || raw.free === true) {
-    return { is_free: true, free_tier_type: "recurring", payment_required: false };
-  }
   const idLower = raw.id.toLowerCase();
-  const upstreamLower = (raw.upstream_provider || raw.provider || raw.owned_by || "").toLowerCase();
-
-  if (idLower.endsWith(":free") || idLower.includes("/free")) {
+  const p = Number(raw.pricing?.prompt ?? NaN);
+  const c = Number(raw.pricing?.completion ?? NaN);
+  if (idLower.endsWith(":free") || (p === 0 && c === 0)) {
     return { is_free: true, free_tier_type: "recurring", payment_required: false };
   }
-  if (
-    upstreamLower.includes("ollama") ||
-    upstreamLower.includes("lmstudio") ||
-    upstreamLower.includes("vllm") ||
-    upstreamLower.includes("local")
-  ) {
-    return { is_free: true, free_tier_type: "local", payment_required: false };
-  }
-  if (raw.pricing) {
-    const p = Number(raw.pricing.prompt ?? NaN);
-    const c = Number(raw.pricing.completion ?? NaN);
-    if (p === 0 && c === 0) {
-      return { is_free: true, free_tier_type: "recurring", payment_required: false };
-    }
-    if ((Number.isFinite(p) && p > 0) || (Number.isFinite(c) && c > 0)) {
-      return { is_free: false, free_tier_type: "paid", payment_required: true };
-    }
-  }
-  // If pricing/free status is not explicitly zero-cost, do not assume it's free
-  return { is_free: false, free_tier_type: "unknown", payment_required: true };
+  return { is_free: false, free_tier_type: "paid", payment_required: true };
 }
 
 export const ProviderDiscovery = {
@@ -80,19 +59,135 @@ export const ProviderDiscovery = {
 
         for (const m of models) {
           const caps = ModelCapabilityRegistry.inspect(m.id);
-          const candidate = FreeTierRegistry.evaluateEligibility({
-            provider: "groq",
-            provider_source: "groq_direct",
-            upstream_provider: m.owned_by || "groq",
-            model: m.id,
-            display_name: m.id,
-            is_free: true, // Groq developer free tier (subject to rate-limit headers)
+          discovered.push(
+            FreeTierRegistry.evaluateEligibility({
+              provider: "groq",
+              provider_source: "groq_direct",
+              upstream_provider: m.owned_by || "groq",
+              model: m.id,
+              display_name: m.id,
+              is_free: true,
+              free_tier_type: "recurring",
+              supports_vision: caps.supports_vision,
+              supports_document_images: caps.supports_document_images,
+              supports_structured_output: caps.supports_structured_output,
+              supports_arabic: caps.supports_arabic,
+              context_window: m.context_window ?? null,
+              requests_per_minute: pool?.requests_per_minute ?? null,
+              requests_per_day: pool?.requests_per_day ?? null,
+              tokens_per_minute: pool?.tokens_per_minute ?? null,
+              tokens_per_day: pool?.tokens_per_day ?? null,
+              remaining_daily_requests: pool?.remaining_daily_requests ?? null,
+              remaining_daily_quota: pool?.remaining_daily_tokens ?? null,
+              remaining_minute_requests: pool?.remaining_minute_requests ?? null,
+              remaining_minute_tokens: pool?.remaining_minute_tokens ?? null,
+              quota_reset_at: pool?.quota_reset_at ?? null,
+              quota_source: pool?.quota_source ?? "unknown",
+              shared_quota_pool: GroqProvider.poolId,
+              payment_required: false,
+              terms_approved: terms.terms_approved,
+              terms_notes: terms.notes,
+              health_status: health.status,
+              avg_latency_ms: health.avg_latency_ms,
+              last_verified_at: now,
+            })
+          );
+        }
+      } catch (err) {
+        errors.push({
+          source: "primary_engine_a",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    // 2. OpenRouter Discovery
+    if (OpenRouterProvider.isConfigured()) {
+      try {
+        const models = await OpenRouterProvider.listModels();
+        const pool = ProviderQuotaManager.getPoolSnapshot(OpenRouterProvider.poolId);
+        const health = ProviderHealthMonitor.getHealth("openrouter");
+        const terms = ProviderTermsRegistry.evaluate("openrouter");
+
+        for (const m of models) {
+          const freeInfo = inferOpenRouterFreeTier(m);
+          // Only index free models from OpenRouter so catalog stays lean and zero-cost
+          if (!freeInfo.is_free) continue;
+
+          const inputMods = m.architecture?.input_modalities || [];
+          const hasImageMod =
+            inputMods.includes("image") ||
+            Boolean(m.architecture?.modality?.toLowerCase().includes("image"));
+
+          const caps = ModelCapabilityRegistry.inspect(m.id, {
+            input_modalities: inputMods,
+            supports_vision: hasImageMod,
+          });
+
+          discovered.push(
+            FreeTierRegistry.evaluateEligibility({
+              provider: "openrouter",
+              provider_source: "openrouter",
+              upstream_provider: m.id.split("/")[0] || "openrouter",
+              model: m.id,
+              display_name: m.name || m.id,
+              is_free: true,
+              free_tier_type: "recurring",
+              supports_vision: caps.supports_vision,
+              supports_document_images: caps.supports_document_images,
+              supports_structured_output: caps.supports_structured_output,
+              supports_arabic: caps.supports_arabic,
+              context_window: m.context_length ?? null,
+              requests_per_minute: pool?.requests_per_minute ?? null,
+              requests_per_day: pool?.requests_per_day ?? null,
+              tokens_per_minute: pool?.tokens_per_minute ?? null,
+              tokens_per_day: pool?.tokens_per_day ?? null,
+              remaining_daily_requests: pool?.remaining_daily_requests ?? null,
+              remaining_daily_quota: pool?.remaining_daily_tokens ?? null,
+              remaining_minute_requests: pool?.remaining_minute_requests ?? null,
+              remaining_minute_tokens: pool?.remaining_minute_tokens ?? null,
+              quota_reset_at: pool?.quota_reset_at ?? null,
+              quota_source: pool?.quota_source ?? "unknown",
+              shared_quota_pool: OpenRouterProvider.poolId,
+              payment_required: false,
+              terms_approved: terms.terms_approved,
+              terms_notes: terms.notes,
+              health_status: health.status,
+              avg_latency_ms: health.avg_latency_ms,
+              last_verified_at: now,
+            })
+          );
+        }
+      } catch (err) {
+        errors.push({
+          source: "primary_engine_b",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    // 3. Gemini Fallback Discovery
+    if (GeminiProvider.isConfigured()) {
+      const health = ProviderHealthMonitor.getHealth("gemini");
+      const terms = ProviderTermsRegistry.evaluate("gemini");
+      const pool = ProviderQuotaManager.getPoolSnapshot(GeminiProvider.poolId);
+
+      for (const gm of GEMINI_FALLBACK_MODELS) {
+        const caps = ModelCapabilityRegistry.inspect(gm.id, { supports_vision: true });
+        discovered.push(
+          FreeTierRegistry.evaluateEligibility({
+            provider: "gemini",
+            provider_source: "gemini_fallback",
+            upstream_provider: "google",
+            model: gm.id,
+            display_name: gm.id,
+            is_free: true,
             free_tier_type: "recurring",
             supports_vision: caps.supports_vision,
             supports_document_images: caps.supports_document_images,
             supports_structured_output: caps.supports_structured_output,
             supports_arabic: caps.supports_arabic,
-            context_window: m.context_window ?? null,
+            context_window: gm.context_window,
             requests_per_minute: pool?.requests_per_minute ?? null,
             requests_per_day: pool?.requests_per_day ?? null,
             tokens_per_minute: pool?.tokens_per_minute ?? null,
@@ -103,97 +198,16 @@ export const ProviderDiscovery = {
             remaining_minute_tokens: pool?.remaining_minute_tokens ?? null,
             quota_reset_at: pool?.quota_reset_at ?? null,
             quota_source: pool?.quota_source ?? "unknown",
-            shared_quota_pool: GroqProvider.poolId,
+            shared_quota_pool: GeminiProvider.poolId,
             payment_required: false,
             terms_approved: terms.terms_approved,
             terms_notes: terms.notes,
             health_status: health.status,
             avg_latency_ms: health.avg_latency_ms,
             last_verified_at: now,
-          });
-          discovered.push(candidate);
-        }
-      } catch (err) {
-        errors.push({
-          source: "groq_direct",
-          message: err instanceof Error ? err.message : String(err),
-        });
+          })
+        );
       }
-    } else {
-      errors.push({
-        source: "groq_direct",
-        message: "GROQ_API_KEY is not configured in environment.",
-      });
-    }
-
-    // 2. OmniRoute Gateway Discovery
-    if (OmniRouteProvider.isConfigured()) {
-      try {
-        const models = await OmniRouteProvider.listModels();
-        const health = ProviderHealthMonitor.getHealth("omniroute");
-
-        for (const m of models) {
-          const upstream =
-            m.upstream_provider ||
-            m.provider ||
-            m.owned_by ||
-            (m.id.includes("/") ? m.id.split("/")[0] : "omniroute");
-          const poolId = `omniroute:${upstream}`;
-          const pool = ProviderQuotaManager.getPoolSnapshot(poolId);
-          const terms = ProviderTermsRegistry.evaluate("omniroute", upstream);
-          const freeInfo = inferOmniRouteFreeTier(m);
-          const caps = ModelCapabilityRegistry.inspect(m.id, {
-            modalities: m.modalities,
-            input_modalities: m.input_modalities,
-            capabilities: m.capabilities,
-            vision: m.vision,
-            supports_vision: m.supports_vision,
-          });
-
-          const candidate = FreeTierRegistry.evaluateEligibility({
-            provider: `omniroute/${upstream}`,
-            provider_source: "omniroute",
-            upstream_provider: upstream,
-            model: m.id,
-            display_name: m.name || m.id,
-            is_free: freeInfo.is_free,
-            free_tier_type: freeInfo.free_tier_type,
-            supports_vision: caps.supports_vision,
-            supports_document_images: caps.supports_document_images,
-            supports_structured_output: caps.supports_structured_output,
-            supports_arabic: caps.supports_arabic,
-            context_window: m.context_length ?? m.context_window ?? null,
-            requests_per_minute: pool?.requests_per_minute ?? null,
-            requests_per_day: pool?.requests_per_day ?? null,
-            tokens_per_minute: pool?.tokens_per_minute ?? null,
-            tokens_per_day: pool?.tokens_per_day ?? null,
-            remaining_daily_requests: pool?.remaining_daily_requests ?? null,
-            remaining_daily_quota: pool?.remaining_daily_tokens ?? null,
-            remaining_minute_requests: pool?.remaining_minute_requests ?? null,
-            remaining_minute_tokens: pool?.remaining_minute_tokens ?? null,
-            quota_reset_at: pool?.quota_reset_at ?? null,
-            quota_source: pool?.quota_source ?? "unknown",
-            shared_quota_pool: poolId,
-            payment_required: freeInfo.payment_required,
-            terms_approved: terms.terms_approved,
-            terms_notes: terms.notes,
-            health_status: health.status,
-            avg_latency_ms: health.avg_latency_ms,
-            last_verified_at: now,
-          });
-          discovered.push(candidate);
-        }
-      } catch (err) {
-        errors.push({
-          source: "omniroute",
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
-    } else {
-      errors.push({
-        source: "omniroute",
-        message: "OMNIROUTE_BASE_URL is not configured in environment.",
-      });
     }
 
     if (discovered.length > 0) {

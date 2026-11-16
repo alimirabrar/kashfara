@@ -6,7 +6,7 @@ export type QuotaSource = "verified" | "estimated" | "unknown";
 
 export interface ProviderEligibility {
   provider: string;
-  provider_source: "groq_direct" | "omniroute";
+  provider_source: "groq_direct" | "openrouter" | "gemini_fallback";
   upstream_provider?: string;
   model: string;
   display_name?: string;

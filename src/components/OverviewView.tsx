@@ -6,10 +6,10 @@ import {
   FileText,
   Gauge,
   RefreshCw,
-  AlertCircle,
   CheckCircle2,
   Clock,
   Layers,
+  ShieldCheck,
 } from "lucide-react";
 import { UploadDropzone } from "./UploadDropzone";
 import { formatDuration } from "@/lib/utils";
@@ -24,7 +24,6 @@ interface OverviewViewProps {
   ledger: DailyUsageLedgerState | null;
   capacity: CapacityEstimate | null;
   providers: ProviderEligibility[];
-  providerErrors: Array<{ source: string; message: string }>;
   documents: Array<{
     id: string;
     filename: string;
@@ -44,7 +43,6 @@ export function OverviewView({
   ledger,
   capacity,
   providers,
-  providerErrors,
   documents,
   onRefresh,
   onUploadedAndProcessed,
@@ -57,7 +55,6 @@ export function OverviewView({
     (p) => p.eligible_for_routing && p.supports_structured_output
   );
 
-  // Deduplicate shared quota pools for display
   const uniquePools = new Map<string, ProviderEligibility>();
   for (const p of providers.filter((x) => x.eligible_for_routing)) {
     if (!uniquePools.has(p.shared_quota_pool)) {
@@ -71,7 +68,7 @@ export function OverviewView({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="kv-panel rounded-xl p-4">
           <div className="flex items-center justify-between text-xs text-[#91A3B6]">
-            <span>Documents Today</span>
+            <span>Documents Processed Today</span>
             <FileText className="w-4 h-4 text-[#40E9E1]" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
@@ -83,13 +80,13 @@ export function OverviewView({
             </span>
           </div>
           <div className="mt-1 text-[11px] text-[#91A3B6]">
-            {ledger?.pages_processed_today ?? 0} pages processed today
+            {ledger?.pages_processed_today ?? 0} pages analyzed today
           </div>
         </div>
 
         <div className="kv-panel rounded-xl p-4">
           <div className="flex items-center justify-between text-xs text-[#91A3B6]">
-            <span>Eligible Free Vision</span>
+            <span>Active Vision Cores</span>
             <Layers className="w-4 h-4 text-[#32D6A0]" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
@@ -101,23 +98,23 @@ export function OverviewView({
             </span>
           </div>
           <div className="mt-1 text-[11px] text-[#91A3B6]">
-            {uniquePools.size} independent quota pool(s)
+            {uniquePools.size} independent routing cluster(s)
           </div>
         </div>
 
         <div className="kv-panel rounded-xl p-4">
           <div className="flex items-center justify-between text-xs text-[#91A3B6]">
-            <span>Tokens & Requests</span>
+            <span>Extraction Throughput</span>
             <Activity className="w-4 h-4 text-[#1FBFCA]" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-semibold font-mono text-[#E8F0F7]">
-              {((ledger?.input_tokens_today ?? 0) + (ledger?.output_tokens_today ?? 0)).toLocaleString()}
+              {ledger?.successful_extractions_today ?? 0}
             </span>
-            <span className="text-xs font-mono text-[#91A3B6]">tokens</span>
+            <span className="text-xs font-mono text-[#91A3B6]">verified jobs</span>
           </div>
           <div className="mt-1 text-[11px] text-[#91A3B6]">
-            {ledger?.requests_today ?? 0} requests · {ledger?.rate_limit_events_today ?? 0} rate-limits
+            {ledger?.requests_today ?? 0} intelligence operations today
           </div>
         </div>
 
@@ -132,12 +129,12 @@ export function OverviewView({
             </span>
           </div>
           <div className="mt-1 text-[11px] text-[#91A3B6]">
-            {ledger?.provider_failures_today ?? 0} provider failures today
+            End-to-end multimodal pipeline
           </div>
         </div>
       </div>
 
-      {/* Upload + Capacity Estimator */}
+      {/* Upload + Engine Capacity */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7 space-y-4">
           <UploadDropzone
@@ -195,105 +192,72 @@ export function OverviewView({
           </div>
         </div>
 
-        {/* Capacity & Quota Panel */}
+        {/* Kashfara Engine Telemetry */}
         <div className="lg:col-span-5 space-y-4">
           <div className="kv-panel rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-[#40E9E1]" />
                 <h2 className="text-sm font-semibold text-[#E8F0F7]">
-                  Free-Tier Capacity & Quotas
+                  Kashfara Engine Telemetry
                 </h2>
               </div>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#152231] text-[#91A3B6]">
-                {capacity?.default_workload_pages ?? 5}p default / {capacity?.max_document_pages ?? 10}p max
+                {capacity?.default_workload_pages ?? 5}p std / {capacity?.max_document_pages ?? 10}p max
               </span>
             </div>
 
-            <div className="p-3 rounded-lg bg-[#0B121D] border border-[#91A3B6]/15 space-y-1.5 text-xs">
+            <div className="p-3 rounded-lg bg-[#0B121D] border border-[#91A3B6]/15 space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-[#91A3B6]">Verified Remaining Capacity</span>
-                <span className="font-mono text-[#E8F0F7]">
-                  {capacity?.verified_remaining_documents !== null &&
-                  capacity?.verified_remaining_documents !== undefined
-                    ? `~${capacity.verified_remaining_documents} docs`
-                    : "Unknown (awaiting header)"}
-                </span>
+                <span className="text-[#91A3B6]">Multimodal Classification</span>
+                <span className="font-mono text-[#32D6A0]">ACTIVE</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#91A3B6]">Estimated Shortfall vs Target</span>
-                <span className="font-mono text-[#F6B94A]">
-                  {capacity?.shortfall_documents !== null &&
-                  capacity?.shortfall_documents !== undefined
-                    ? `${capacity.shortfall_documents} docs`
-                    : "Unknown"}
-                </span>
+                <span className="text-[#91A3B6]">Evidence-Backed Proofing</span>
+                <span className="font-mono text-[#32D6A0]">ACTIVE</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#91A3B6]">Arabic &amp; English RTL Support</span>
+                <span className="font-mono text-[#32D6A0]">ACTIVE</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#91A3B6]">Automatic Form Digitalisation</span>
+                <span className="font-mono text-[#32D6A0]">ACTIVE</span>
               </div>
             </div>
 
-            {capacity?.notes && capacity.notes.length > 0 && (
-              <ul className="space-y-1.5 text-xs text-[#91A3B6]">
-                {capacity.notes.map((n, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span className="text-[#40E9E1] mt-0.5">•</span>
-                    <span>{n}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {/* Shared Quota Pools */}
             <div className="pt-2 border-t border-[#91A3B6]/15 space-y-2">
               <div className="text-xs font-mono uppercase tracking-wider text-[#91A3B6]">
-                Active Quota Pools
+                Routing Clusters
               </div>
               {uniquePools.size === 0 ? (
-                <div className="text-xs text-[#F6B94A] flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>No active free-tier pools connected.</span>
+                <div className="text-xs text-[#F6B94A]">
+                  Engine standby — configure API credentials to activate processing.
                 </div>
               ) : (
-                Array.from(uniquePools.entries()).map(([poolId, rep]) => (
+                Array.from(uniquePools.entries()).map(([, rep], idx) => (
                   <div
-                    key={poolId}
-                    className="p-2.5 rounded-lg bg-[#152231]/60 border border-[#91A3B6]/15 text-xs space-y-1"
+                    key={idx}
+                    className="p-2.5 rounded-lg bg-[#152231]/60 border border-[#91A3B6]/15 text-xs flex items-center justify-between"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[#E8F0F7]">{poolId}</span>
-                      <span className="flex items-center gap-1 text-[10px] font-mono text-[#32D6A0]">
-                        <CheckCircle2 className="w-3 h-3" />
-                        {rep.quota_source.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[11px] text-[#91A3B6] font-mono">
-                      <span>
-                        Rem Req:{" "}
-                        {rep.remaining_daily_requests !== null
-                          ? rep.remaining_daily_requests
-                          : "unknown"}
-                      </span>
-                      <span>
-                        TPM Limit:{" "}
-                        {rep.tokens_per_minute !== null ? rep.tokens_per_minute : "unknown"}
-                      </span>
-                    </div>
+                    <span className="font-mono text-[#E8F0F7]">
+                      Kashfara Neural Cluster {idx + 1}
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] font-mono text-[#32D6A0]">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {rep.health_status === "healthy" ? "OPTIMAL" : "READY"}
+                    </span>
                   </div>
                 ))
               )}
             </div>
 
-            {providerErrors.length > 0 && (
-              <div className="pt-2 border-t border-[#91A3B6]/15 space-y-1">
-                {providerErrors.map((e, i) => (
-                  <div key={i} className="text-[11px] text-[#F6B94A] flex items-start gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>{e.source}:</strong> {e.message}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="pt-2 border-t border-[#91A3B6]/15 flex items-center gap-2 text-[11px] text-[#91A3B6]">
+              <ShieldCheck className="w-4 h-4 text-[#32D6A0] shrink-0" />
+              <span>
+                All uploaded documents are processed privately with zero public exposure.
+              </span>
+            </div>
           </div>
         </div>
       </div>

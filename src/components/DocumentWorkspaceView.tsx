@@ -639,7 +639,7 @@ export function DocumentWorkspaceView({
                     </span>
                   </div>
                   <div className="text-[11px] font-mono text-[#91A3B6]">
-                    {log.provider ? `${log.provider} / ${log.model}` : "Local validation"}
+                    {log.provider ? "Kashfara Multimodal Core" : "Kashfara Evidence Engine"}
                     {log.input_tokens ? ` · ${log.input_tokens} in / ${log.output_tokens} out` : ""}
                   </div>
                 </div>

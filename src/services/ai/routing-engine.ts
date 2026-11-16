@@ -1,4 +1,3 @@
-import { getConfig } from "@/lib/config";
 import { FreeTierRegistry } from "./free-tier-registry";
 import { ModelCapabilityRegistry } from "./model-capabilities";
 import type { ProviderEligibility, TaskCategory } from "@/types/kashfara";
@@ -37,7 +36,6 @@ export const QuotaAwareRouter = {
       excludeModels?: Set<string>;
     }
   ): RoutingCandidate[] {
-    const cfg = getConfig();
     const ranked: RoutingCandidate[] = [];
 
     for (const p of providers) {
@@ -59,53 +57,34 @@ export const QuotaAwareRouter = {
 
       let score = caps.quality_tier;
 
-      // Prioritize accuracy & evidence reliability for extraction/verification tasks
+      // Primary preference: Groq Direct & OpenRouter; Gemini acts as reliable fallback
+      if (p.provider_source === "groq_direct" || p.provider_source === "openrouter") {
+        score += 10;
+      } else if (p.provider_source === "gemini_fallback") {
+        score -= 4;
+      }
+
       if (
         opts.task === "key_value_extraction" ||
         opts.task === "table_extraction" ||
         opts.task === "stamp_signature_identification"
       ) {
-        if (/maverick|gemini-2\.5|qwen2\.5-vl|claude|gpt-4o/i.test(p.model)) {
+        if (/maverick|gemini-2\.5|qwen2\.5-vl|qwen3-vl/i.test(p.model)) {
           score += 12;
         }
       }
 
-      // Fast classification/form detection can favor Scout / Flash
       if (opts.task === "document_classification" || opts.task === "form_detection") {
         if (/scout|flash/i.test(p.model)) {
           score += 6;
         }
       }
 
-      // Multilingual / Arabic boost
       if (opts.requiresArabic || opts.task === "arabic_english_understanding") {
         if (caps.supports_arabic) score += 10;
         else score -= 20;
       }
 
-      // Explicit config preference overrides
-      if (
-        cfg.groqVisionModelOverride &&
-        p.provider_source === "groq_direct" &&
-        p.model === cfg.groqVisionModelOverride
-      ) {
-        score += 25;
-      }
-      if (
-        cfg.omniroutePreferredVisionModel &&
-        p.provider_source === "omniroute" &&
-        p.model === cfg.omniroutePreferredVisionModel
-      ) {
-        score += 25;
-      }
-
-      if (cfg.primaryProvider !== "auto") {
-        if (p.provider.includes(cfg.primaryProvider) || p.provider_source === cfg.primaryProvider) {
-          score += 15;
-        }
-      }
-
-      // Quota availability & health
       if (p.health_status === "healthy") score += 5;
       if (p.health_status === "degraded") score -= 12;
       if (p.remaining_daily_requests !== null && p.remaining_daily_requests < 5) {
@@ -118,7 +97,7 @@ export const QuotaAwareRouter = {
       ranked.push({
         entry: evalResult,
         score,
-        rationale: `${caps.reason} (score=${score}, health=${p.health_status})`,
+        rationale: `Kashfara Neural Router (score=${score}, health=${p.health_status})`,
       });
     }
 

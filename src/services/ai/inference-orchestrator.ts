@@ -1,4 +1,3 @@
-import { getConfig } from "@/lib/config";
 import { ProviderDiscovery } from "./provider-discovery";
 import { QuotaAwareRouter } from "./routing-engine";
 import {
@@ -8,7 +7,8 @@ import {
   type ChatMessage,
   type InferenceResponse,
 } from "./groq-provider";
-import { OmniRouteProvider } from "./omniroute-provider";
+import { OpenRouterProvider } from "./openrouter-provider";
+import { GeminiProvider } from "./gemini-provider";
 import { FreeTierRegistry } from "./free-tier-registry";
 import { DailyUsageLedger } from "@/services/usage/daily-ledger";
 import type { TaskCategory } from "@/types/kashfara";
@@ -38,7 +38,6 @@ export function extractJsonFromText<T>(raw: string): T | null {
   try {
     return JSON.parse(trimmed) as T;
   } catch {
-    // Strip markdown code fences if present
     const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
     if (fenceMatch?.[1]) {
       try {
@@ -47,7 +46,6 @@ export function extractJsonFromText<T>(raw: string): T | null {
         // continue
       }
     }
-    // Try finding first { ... } or [ ... ]
     const firstBrace = trimmed.indexOf("{");
     const lastBrace = trimmed.lastIndexOf("}");
     if (firstBrace !== -1 && lastBrace > firstBrace) {
@@ -77,7 +75,6 @@ export const InferenceOrchestrator = {
     temperature?: number;
     pagesCount?: number;
   }): Promise<OrchestratedResult<T>> {
-    const cfg = getConfig();
     const discovery = await ProviderDiscovery.discoverAll(false);
     const hasImages = Boolean(params.images && params.images.length > 0);
     const needsVision = QuotaAwareRouter.requiresVision(params.task, hasImages);
@@ -89,16 +86,9 @@ export const InferenceOrchestrator = {
     });
 
     if (candidates.length === 0) {
-      const reasons = discovery.errors.map((e) => `${e.source}: ${e.message}`);
-      const excluded = discovery.providers
-        .filter((p) => !p.eligible_for_routing && p.excluded_reason)
-        .slice(0, 5)
-        .map((p) => `${p.provider}/${p.model}: ${p.excluded_reason}`);
       throw new NoEligibleProviderError(
-        cfg.freeOnlyMode
-          ? "No eligible free-tier AI model is available for this task under FREE_ONLY_MODE=true."
-          : "No AI provider/model is available for this task.",
-        [...reasons, ...excluded]
+        "Kashfara Vision Engine is currently unavailable. Please verify engine credentials.",
+        discovery.errors.map((e) => e.message)
       );
     }
 
@@ -129,13 +119,10 @@ export const InferenceOrchestrator = {
     const failureNotes: string[] = [];
     let attempts = 0;
 
-    for (const candidate of candidates.slice(0, 4)) {
+    for (const candidate of candidates.slice(0, 5)) {
       const entry = candidate.entry;
-
-      // Pre-flight FREE_ONLY_MODE verification
       const check = FreeTierRegistry.evaluateEligibility(entry);
       if (!check.eligible_for_routing) {
-        failureNotes.push(`${entry.provider}/${entry.model}: ${check.excluded_reason}`);
         continue;
       }
 
@@ -150,10 +137,17 @@ export const InferenceOrchestrator = {
             max_tokens: params.maxTokens ?? 2500,
             json_mode: params.expectJson,
           });
-        } else {
-          res = await OmniRouteProvider.chatCompletion({
+        } else if (entry.provider_source === "openrouter") {
+          res = await OpenRouterProvider.chatCompletion({
             model: entry.model,
-            upstreamProvider: entry.upstream_provider,
+            messages,
+            temperature: params.temperature ?? 0.1,
+            max_tokens: params.maxTokens ?? 2500,
+            json_mode: params.expectJson,
+          });
+        } else {
+          res = await GeminiProvider.chatCompletion({
+            model: entry.model,
             messages,
             temperature: params.temperature ?? 0.1,
             max_tokens: params.maxTokens ?? 2500,
@@ -166,8 +160,8 @@ export const InferenceOrchestrator = {
           parsed = extractJsonFromText<T>(res.content);
           if (!parsed) {
             await DailyUsageLedger.recordInference({
-              provider: res.provider,
-              model: res.model,
+              provider: "kashfara-engine",
+              model: "kashfara-multimodal",
               shared_quota_pool: entry.shared_quota_pool,
               task: params.task,
               document_id: params.documentId,
@@ -179,14 +173,14 @@ export const InferenceOrchestrator = {
               rate_limited: false,
               error_message: "Invalid structured JSON output",
             });
-            failureNotes.push(`${entry.provider}/${entry.model}: invalid JSON output`);
+            failureNotes.push("Invalid structured output; trying next route");
             continue;
           }
         }
 
         await DailyUsageLedger.recordInference({
-          provider: res.provider,
-          model: res.model,
+          provider: "kashfara-engine",
+          model: "kashfara-multimodal",
           shared_quota_pool: entry.shared_quota_pool,
           task: params.task,
           document_id: params.documentId,
@@ -201,8 +195,8 @@ export const InferenceOrchestrator = {
         return {
           parsed,
           raw_text: res.content,
-          provider: res.provider,
-          model: res.model,
+          provider: "Kashfara Vision",
+          model: "Kashfara Multimodal Core",
           input_tokens: res.input_tokens,
           output_tokens: res.output_tokens,
           latency_ms: res.latency_ms,
@@ -214,8 +208,8 @@ export const InferenceOrchestrator = {
         const msg = err instanceof Error ? err.message : String(err);
 
         await DailyUsageLedger.recordInference({
-          provider: entry.provider,
-          model: entry.model,
+          provider: "kashfara-engine",
+          model: "kashfara-multimodal",
           shared_quota_pool: entry.shared_quota_pool,
           task: params.task,
           document_id: params.documentId,
@@ -228,15 +222,12 @@ export const InferenceOrchestrator = {
           error_message: msg,
         });
 
-        failureNotes.push(`${entry.provider}/${entry.model}: ${msg}`);
-        if (isProvErr && !err.retryable) {
-          continue;
-        }
+        failureNotes.push(msg);
       }
     }
 
     throw new NoEligibleProviderError(
-      `All eligible free-tier providers failed for task "${params.task}".`,
+      `Kashfara Vision Engine could not complete task "${params.task}".`,
       failureNotes
     );
   },
