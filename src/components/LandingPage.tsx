@@ -43,7 +43,7 @@ const SCENARIOS: DemoScenario[] = [
   {
     id: "invoice",
     tab: "Arabic-English Invoice",
-    badge: "FTA / ZATCA Ready",
+    badge: "Finance & VAT Ready",
     titleAr: "فاتورة ضريبية",
     titleEn: "TAX INVOICE",
     docLines: [
@@ -80,42 +80,42 @@ const SCENARIOS: DemoScenario[] = [
     ],
   },
   {
-    id: "license",
-    tab: "UAE Trade License",
-    badge: "DED / PRO Automation",
-    titleAr: "رخصة تجارية",
-    titleEn: "COMMERCIAL LICENSE",
+    id: "lease",
+    tab: "Commercial Lease",
+    badge: "Real Estate & Property",
+    titleAr: "عقد إيجار تجاري",
+    titleEn: "COMMERCIAL LEASE",
     docLines: [
       {
-        labelAr: "رقم الرخصة",
-        labelEn: "License No",
-        value: "CN-4091822",
+        labelAr: "رقم العقد",
+        labelEn: "Contract No",
+        value: "LSE-9042-DXB",
         box: { top: "24%", left: "8%", width: "84%", height: "14%" },
       },
       {
-        labelAr: "الاسم التجاري",
-        labelEn: "Trade Name",
-        value: "مجموعة المدار الذكية",
+        labelAr: "المستأجر",
+        labelEn: "Tenant",
+        value: "مجموعة المدار الذكية ذ.م.م",
         box: { top: "42%", left: "8%", width: "84%", height: "14%" },
       },
       {
-        labelAr: "الشكل القانوني",
-        labelEn: "Legal Type",
-        value: "ذات مسؤولية محدودة (LLC)",
+        labelAr: "القيمة الإيجارية",
+        labelEn: "Annual Rent",
+        value: "AED 240,000 / year",
         box: { top: "60%", left: "8%", width: "84%", height: "14%" },
       },
       {
         labelAr: "تاريخ الانتهاء",
-        labelEn: "Expiry Date",
+        labelEn: "End Date",
         value: "2027-10-31",
         box: { top: "78%", left: "8%", width: "84%", height: "14%" },
       },
     ],
     extracted: [
-      { key: "license_number", label: "رقم الرخصة / License No", value: "CN-4091822", coords: "p.1 (0.08, 0.24)", status: "VERIFIED" },
-      { key: "trade_name", label: "الاسم التجاري / Trade Name", value: "مجموعة المدار الذكية", coords: "p.1 (0.08, 0.42)", status: "VERIFIED" },
-      { key: "legal_form", label: "الشكل القانوني / Legal Type", value: "LLC · ذات مسؤولية محدودة", coords: "p.1 (0.08, 0.60)", status: "VERIFIED" },
-      { key: "expiry_date", label: "تاريخ الانتهاء / Expiry", value: "2027-10-31", coords: "p.1 (0.08, 0.78)", status: "VERIFIED" },
+      { key: "contract_number", label: "رقم العقد / Contract No", value: "LSE-9042-DXB", coords: "p.1 (0.08, 0.24)", status: "VERIFIED" },
+      { key: "tenant_name", label: "المستأجر / Tenant", value: "مجموعة المدار الذكية ذ.م.م", coords: "p.1 (0.08, 0.42)", status: "VERIFIED" },
+      { key: "annual_rent", label: "الإيجار السنوي / Annual Rent", value: "AED 240,000 / year", coords: "p.1 (0.08, 0.60)", status: "VERIFIED" },
+      { key: "end_date", label: "تاريخ الانتهاء / End Date", value: "2027-10-31", coords: "p.1 (0.08, 0.78)", status: "VERIFIED" },
     ],
   },
   {
@@ -162,27 +162,39 @@ const SCENARIOS: DemoScenario[] = [
 const USE_CASES = [
   {
     icon: FileSpreadsheet,
-    region: "UAE & Saudi Arabia",
-    title: "Finance, VAT & ZATCA Compliance",
-    desc: "Automate Arabic-English tax invoices, bank statements, and vendor receipts with line-item table extraction and TRN verification.",
+    region: "Finance & Accounting",
+    title: "VAT Invoices, AP/AR & Auditing",
+    desc: "Automate Arabic-English tax invoices, bank statements, purchase orders, and vendor receipts with line-item table extraction.",
   },
   {
     icon: ShieldCheck,
-    region: "Government & PRO",
-    title: "Identity, Licensing & Permits",
-    desc: "Digitalize Emirates IDs, Trade Licenses, Visas, and Municipality certificates into structured schemas in seconds.",
+    region: "Banking & FinTech",
+    title: "Corporate Onboarding & Financial Statements",
+    desc: "Extract audited balance sheets, trade finance documents, commercial registrations, and corporate onboarding forms in seconds.",
   },
   {
     icon: Globe2,
     region: "Legal & Enterprise HR",
-    title: "Bilingual Contracts & Onboarding",
-    desc: "Extract clauses, parties, dates, stamps, and handwritten signatures from mixed RTL/LTR agreements and application forms.",
+    title: "Bilingual Contracts & Agreements",
+    desc: "Extract clauses, parties, dates, stamps, and handwritten signatures from mixed RTL/LTR agreements and HR forms.",
   },
   {
     icon: Layers,
-    region: "Logistics & Trade",
-    title: "Customs, Bills of Lading & Ports",
-    desc: "Turn multi-page shipping manifests, delivery notes, and customs declarations into ERP-ready JSON and CSV exports.",
+    region: "Logistics & Supply Chain",
+    title: "Bills of Lading, Delivery & Manifests",
+    desc: "Turn multi-page shipping manifests, delivery notes, and packing lists into structured ERP-ready JSON and CSV exports.",
+  },
+  {
+    icon: Cpu,
+    region: "Real Estate & Property",
+    title: "Leases, Valuations & Handover Forms",
+    desc: "Process bilingual tenancy contracts, maintenance reports, and property inspection checklists with proof-of-evidence coordinates.",
+  },
+  {
+    icon: FileCheck2,
+    region: "Healthcare & Insurance",
+    title: "Medical Claims, Policies & Lab Reports",
+    desc: "Digitize insurance claims, policy schedules, prescriptions, and patient intake forms with high accuracy across handwritten and printed text.",
   },
 ];
 
@@ -292,7 +304,7 @@ export function LandingPage() {
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full apple-surface text-[11px] font-mono uppercase tracking-widest text-[#1D1D1F]"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-black" />
-            <span>OCR + Vision · Built for Arabic &amp; English</span>
+            <span>4B Parameter OCR + Vision Model · Arabic &amp; English</span>
           </motion.div>
 
           <motion.h1
@@ -301,9 +313,9 @@ export function LandingPage() {
             transition={{ duration: 0.55, delay: 0.05 }}
             className="text-4xl sm:text-6xl font-semibold tracking-tight text-black leading-[1.06]"
           >
-            Document Intelligence,
+            4B Parameter Vision,
             <br />
-            <span className="text-[#6E6E73]">Engineered for Precision.</span>
+            <span className="text-[#6E6E73]">Built for Documents &amp; OCR.</span>
           </motion.h1>
 
           <motion.p
@@ -312,9 +324,9 @@ export function LandingPage() {
             transition={{ duration: 0.55, delay: 0.12 }}
             className="text-base sm:text-xl text-[#6E6E73] max-w-2xl mx-auto leading-relaxed"
           >
-            Kashfara Vision combines fast structural OCR parsing with multimodal vision reasoning — delivering{" "}
-            <span className="text-black font-medium">low-compute, high-accuracy</span>{" "}
-            understanding for Arabic RTL, English, and bilingual enterprise documents.
+            Kashfara is a compact{" "}
+            <span className="text-black font-medium">4-billion-parameter multimodal model</span>{" "}
+            purpose-trained for document and OCR understanding — combining fast parsing with vision reasoning for low-compute, high-accuracy Arabic &amp; English automation.
           </motion.p>
 
           <motion.div
@@ -548,7 +560,7 @@ export function LandingPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {USE_CASES.map((uc) => {
               const Icon = uc.icon;
               return (
