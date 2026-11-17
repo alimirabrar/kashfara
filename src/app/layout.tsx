@@ -23,18 +23,18 @@ const notoSansArabic = Noto_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "KASHFARA VISION — Enterprise Multimodal Document Intelligence",
+  title: "KASHFARA VISION — Arabic & English Document Intelligence",
   description:
-    "Evidence-backed multimodal document understanding, OCR, classification, extraction, form digitalisation, and grounded Q&A.",
+    "OCR + Vision multimodal intelligence built for Arabic and English documents. Low-compute, high-accuracy extraction with proof of evidence.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${ibmPlexMono.variable} ${notoSansArabic.variable} dark h-full antialiased`}
+      className={`${inter.variable} ${ibmPlexMono.variable} ${notoSansArabic.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[#080D15] text-[#E8F0F7] font-sans selection:bg-[#40E9E1]/25 selection:text-[#40E9E1]">
+      <body className="min-h-full bg-white text-[#1D1D1F] font-sans selection:bg-black selection:text-white">
         {children}
       </body>
     </html>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {
   LayoutDashboard,
   ScanSearch,
@@ -9,7 +10,7 @@ import {
   FileSpreadsheet,
   Settings,
   ShieldCheck,
-  Cpu,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,40 +34,41 @@ interface AppShellProps {
 const NAV_ITEMS: Array<{
   id: NavSection;
   label: string;
+  shortLabel: string;
   icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "workspace", label: "Document Workspace", icon: ScanSearch },
-  { id: "history", label: "Extraction History", icon: History },
-  { id: "qa", label: "Document Q&A", icon: MessageSquareQuote },
-  { id: "forms", label: "Digital Forms", icon: FileSpreadsheet },
-  { id: "settings", label: "Platform Settings", icon: Settings },
+  { id: "overview", label: "Live Upload", shortLabel: "Upload", icon: LayoutDashboard },
+  { id: "workspace", label: "Document Proofing", shortLabel: "Proofing", icon: ScanSearch },
+  { id: "qa", label: "Document Q&A", shortLabel: "Q&A", icon: MessageSquareQuote },
+  { id: "forms", label: "Digital Forms", shortLabel: "Forms", icon: FileSpreadsheet },
+  { id: "history", label: "Session History", shortLabel: "History", icon: History },
+  { id: "settings", label: "Platform Info", shortLabel: "Info", icon: Settings },
 ];
 
 export function AppShell({
   activeNav,
   onSelectNav,
   eligibleVisionCount,
-  dailyDocsProcessed,
-  dailyTarget,
   children,
 }: AppShellProps) {
   return (
-    <div className="min-h-screen flex bg-[#080D15] text-[#E8F0F7]">
-      {/* Left Navigation Rail */}
-      <aside className="no-print w-64 shrink-0 bg-[#0B121D] border-r border-[#91A3B6]/15 flex flex-col">
-        <div className="h-16 px-5 flex items-center gap-3 border-b border-[#91A3B6]/15">
-          <div className="w-8 h-8 rounded-lg bg-[#40E9E1]/15 border border-[#40E9E1]/50 flex items-center justify-center shadow-[0_0_16px_rgba(64,233,225,0.2)]">
-            <ScanSearch className="w-4 h-4 text-[#40E9E1]" />
-          </div>
-          <div>
-            <div className="text-sm font-semibold tracking-wider text-[#E8F0F7]">
-              KASHFARA <span className="text-[#40E9E1]">VISION</span>
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#F5F5F7] text-[#1D1D1F]">
+      {/* Desktop Left Sidebar */}
+      <aside className="no-print hidden md:flex w-64 shrink-0 bg-white/80 backdrop-blur-xl border-r border-black/8 flex-col">
+        <div className="h-16 px-5 flex items-center justify-between border-b border-black/8">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center">
+              <ScanSearch className="w-4 h-4" />
             </div>
-            <div className="text-[10px] font-mono uppercase tracking-widest text-[#91A3B6]">
-              Enterprise Doc AI
+            <div>
+              <div className="text-sm font-semibold tracking-tight text-black">
+                KASHFARA
+              </div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-[#6E6E73]">
+                Live Demo
+              </div>
             </div>
-          </div>
+          </Link>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -78,16 +80,16 @@ export function AppShell({
                 key={item.id}
                 onClick={() => onSelectNav(item.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left",
+                  "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left",
                   isActive
-                    ? "bg-[#152231] text-[#40E9E1] border border-[#40E9E1]/35 shadow-[0_0_14px_rgba(64,233,225,0.08)]"
-                    : "text-[#91A3B6] hover:text-[#E8F0F7] hover:bg-[#101A27] border border-transparent"
+                    ? "bg-black text-white shadow-sm"
+                    : "text-[#6E6E73] hover:text-black hover:bg-black/5"
                 )}
               >
                 <Icon
                   className={cn(
                     "w-4 h-4 shrink-0",
-                    isActive ? "text-[#40E9E1]" : "text-[#91A3B6]"
+                    isActive ? "text-white" : "text-[#6E6E73]"
                   )}
                 />
                 <span>{item.label}</span>
@@ -96,83 +98,77 @@ export function AppShell({
           })}
         </nav>
 
-        <div className="p-4 border-t border-[#91A3B6]/15 space-y-2.5 text-xs">
+        <div className="p-4 border-t border-black/8 space-y-3 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[#91A3B6] flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#32D6A0]" />
-              Kashfara Security
+            <span className="text-[#6E6E73] flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-black" />
+              Engine Status
             </span>
-            <span className="font-mono px-1.5 py-0.5 rounded text-[10px] bg-[#32D6A0]/15 text-[#32D6A0] border border-[#32D6A0]/30">
-              ACTIVE
+            <span className="font-mono px-2 py-0.5 rounded-full text-[10px] bg-black text-white">
+              {eligibleVisionCount > 0 ? "ONLINE" : "READY"}
             </span>
           </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-[#91A3B6] flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5 text-[#40E9E1]" />
-              Vision Cores
-            </span>
-            <span className="font-mono text-[#E8F0F7]">{eligibleVisionCount}</span>
-          </div>
-
-          <div className="pt-1">
-            <div className="flex justify-between text-[11px] text-[#91A3B6] mb-1">
-              <span>Daily Volume</span>
-              <span className="font-mono text-[#E8F0F7]">
-                {dailyDocsProcessed}/{dailyTarget}
-              </span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-[#152231] overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-[#1FBFCA] to-[#40E9E1] transition-all"
-                style={{
-                  width: `${Math.min(
-                    100,
-                    Math.round((dailyDocsProcessed / Math.max(1, dailyTarget)) * 100)
-                  )}%`,
-                }}
-              />
-            </div>
-          </div>
+          <Link
+            href="/"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-black/10 text-xs font-medium text-black hover:bg-black/5 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back to Home
+          </Link>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="no-print h-14 px-6 bg-[#0B121D]/80 backdrop-blur border-b border-[#91A3B6]/15 flex items-center justify-between">
+      <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
+        <header className="no-print sticky top-0 z-30 h-14 px-4 sm:px-6 apple-glass flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-[#40E9E1]">
+            <Link
+              href="/"
+              className="md:hidden inline-flex items-center gap-1.5 text-xs font-medium text-black"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Home</span>
+            </Link>
+            <span className="hidden md:inline text-xs font-mono uppercase tracking-widest text-black font-semibold">
               {NAV_ITEMS.find((n) => n.id === activeNav)?.label}
             </span>
-            <span className="text-[#91A3B6]/40">|</span>
-            <span className="text-xs text-[#91A3B6]">
-              Multimodal Document Intelligence &amp; Proofing Workstation
+            <span className="hidden sm:inline text-black/20">|</span>
+            <span className="hidden sm:inline text-xs text-[#6E6E73]">
+              OCR + Vision Proof-of-Evidence Workstation
             </span>
           </div>
-          <div className="flex items-center gap-3 text-xs font-mono">
-            <span
-              className={cn(
-                "px-2.5 py-1 rounded-full border flex items-center gap-1.5",
-                eligibleVisionCount > 0
-                  ? "bg-[#32D6A0]/10 border-[#32D6A0]/30 text-[#32D6A0]"
-                  : "bg-[#F6B94A]/10 border-[#F6B94A]/30 text-[#F6B94A]"
-              )}
-            >
-              <span
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  eligibleVisionCount > 0 ? "bg-[#32D6A0]" : "bg-[#F6B94A]"
-                )}
-              />
-              {eligibleVisionCount > 0
-                ? "KASHFARA ENGINE ONLINE"
-                : "ENGINE STANDBY"}
+
+          <div className="flex items-center gap-2 text-[11px] font-mono">
+            <span className="px-2.5 py-1 rounded-full bg-black text-white flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              KASHFARA LIVE
             </span>
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto kv-grid-bg p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
       </div>
+
+      {/* Mobile iOS-style Bottom Tab Bar */}
+      <nav className="no-print md:hidden fixed bottom-0 inset-x-0 z-40 apple-glass border-t border-black/10 flex items-center justify-around px-1 py-1.5">
+        {NAV_ITEMS.slice(0, 5).map((item) => {
+          const Icon = item.icon;
+          const isActive = activeNav === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSelectNav(item.id)}
+              className={cn(
+                "flex flex-col items-center gap-0.5 px-2.5 py-1 rounded-xl text-[10px] font-medium transition-colors",
+                isActive ? "text-black font-semibold" : "text-[#6E6E73]"
+              )}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{item.shortLabel}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

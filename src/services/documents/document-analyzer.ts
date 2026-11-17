@@ -108,7 +108,15 @@ export const DocumentAnalyzer = {
                   }`
               )
               .join("\n\n")
-          : `Filename: ${doc.filename} (${doc.page_count} total pages). Analyzing ${pageRangeLabel}.`;
+          : `Filename: ${doc.filename} (${doc.page_count} total pages). Analyzing ${pageRangeLabel}.${
+              batch.some((p) => p.text_content)
+                ? "\n\nPre-parsed OCR/Text Layer:\n" +
+                  batch
+                    .filter((p) => p.text_content)
+                    .map((p) => `[Page ${p.page_number}]: ${(p.text_content || "").slice(0, 2000)}`)
+                    .join("\n")
+                : ""
+            }`;
 
       const isFirstBatch = i === 0;
       const systemPrompt = `You are KASHFARA VISION, an enterprise multimodal document intelligence engine.

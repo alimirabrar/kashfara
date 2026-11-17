@@ -71,13 +71,13 @@ export function DocumentWorkspaceView({
 
   if (!doc) {
     return (
-      <div className="max-w-3xl mx-auto py-10 space-y-6">
+      <div className="max-w-3xl mx-auto py-8 space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-lg font-semibold text-[#E8F0F7]">
-            No Document Selected in Workspace
+          <h2 className="text-xl font-semibold text-black">
+            Document Proofing Workspace
           </h2>
-          <p className="text-sm text-[#91A3B6]">
-            Upload a document below or select one from Extraction History to inspect evidence-backed fields.
+          <p className="text-sm text-[#6E6E73]">
+            Upload a document below to inspect extracted fields, tables, and visual proof of evidence.
           </p>
         </div>
         <UploadDropzone maxPages={maxPages} onUploadedAndProcessed={onDocumentUpdated} />
@@ -158,108 +158,99 @@ export function DocumentWorkspaceView({
   const reviewCount = doc.fields.filter((f) => f.verification_status === "NEEDS_REVIEW").length;
 
   return (
-    <div className="h-[calc(100vh-7.5rem)] flex flex-col gap-3">
+    <div className="lg:h-[calc(100vh-6.5rem)] flex flex-col gap-3">
       {/* Workspace Action Bar */}
-      <div className="kv-panel rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="text-sm font-semibold text-[#E8F0F7] truncate max-w-xs">
+      <div className="apple-card rounded-2xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 min-w-0">
+          <div className="text-sm font-semibold text-black truncate max-w-[220px] sm:max-w-xs">
             {doc.filename}
           </div>
           {doc.classification && (
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#40E9E1]/15 text-[#40E9E1] border border-[#40E9E1]/30">
+            <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-black text-white">
               {doc.classification.document_type} · {doc.classification.language}
             </span>
           )}
-          <span className="text-[11px] font-mono text-[#91A3B6]">
-            {doc.page_count} page{doc.page_count > 1 ? "s" : ""} ·{" "}
-            {formatDuration(doc.total_processing_ms)}
+          <span className="text-[11px] font-mono text-[#6E6E73]">
+            {doc.page_count}p · {formatDuration(doc.total_processing_ms)}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          {doc.classification?.is_form && (
-            <button
-              onClick={runDigitalize}
-              disabled={busyAction !== null}
-              className="px-3 py-1.5 rounded-lg bg-[#40E9E1] hover:bg-[#1FBFCA] text-[#080D15] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-[0_0_16px_rgba(64,233,225,0.3)]"
-            >
-              {busyAction === "digitalize" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-              )}
-              DIGITALIZE THIS FORM
-            </button>
-          )}
-          {!doc.classification?.is_form && (
-            <button
-              onClick={runDigitalize}
-              disabled={busyAction !== null}
-              className="px-2.5 py-1.5 rounded-lg bg-[#152231] hover:bg-[#152231]/80 border border-[#91A3B6]/25 text-xs text-[#E8F0F7] flex items-center gap-1.5"
-            >
-              {busyAction === "digitalize" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5 text-[#40E9E1]" />
-              )}
-              Digitalize Form
-            </button>
-          )}
+          <button
+            onClick={runDigitalize}
+            disabled={busyAction !== null}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all",
+              doc.classification?.is_form
+                ? "bg-black hover:bg-[#1D1D1F] text-white shadow-sm"
+                : "bg-[#F5F5F7] hover:bg-black hover:text-white text-black border border-black/10"
+            )}
+          >
+            {busyAction === "digitalize" ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : doc.classification?.is_form ? (
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            {doc.classification?.is_form ? "DIGITALIZE THIS FORM" : "Digitalize Form"}
+          </button>
+
           <button
             onClick={runReprocess}
             disabled={busyAction !== null}
-            className="px-3 py-1.5 rounded-lg bg-[#152231] hover:border-[#40E9E1]/50 border border-[#91A3B6]/25 text-xs text-[#E8F0F7] flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-full bg-[#F5F5F7] hover:bg-black hover:text-white border border-black/10 text-xs font-medium text-black flex items-center gap-1.5 transition-colors"
           >
             {busyAction === "process" ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#40E9E1]" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <Play className="w-3.5 h-3.5 text-[#40E9E1]" />
+              <Play className="w-3.5 h-3.5" />
             )}
             {doc.status === "uploaded" || doc.status === "failed"
-              ? "Run AI Extraction"
-              : "Re-run Pipeline"}
+              ? "Run Extraction"
+              : "Re-run"}
           </button>
         </div>
       </div>
 
       {(actionError || (doc.status === "failed" && doc.error_message)) && (
-        <div className="p-2.5 rounded-lg bg-[#F87171]/10 border border-[#F87171]/35 text-xs text-[#F87171] break-words">
+        <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 break-words">
           {actionError || doc.error_message}
         </div>
       )}
 
       {/* 3-Pane Workstation */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0">
-        {/* Left: Pages & Classification Metadata */}
-        <div className="lg:col-span-2 kv-panel rounded-xl p-3 flex flex-col gap-3 overflow-y-auto">
-          <div className="text-[11px] font-mono uppercase tracking-wider text-[#91A3B6]">
+        {/* Left: Pages & Signals */}
+        <div className="lg:col-span-2 apple-card rounded-2xl p-3 flex flex-col gap-3 overflow-y-auto max-h-[260px] lg:max-h-none">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-[#6E6E73]">
             Pages ({doc.pages.length})
           </div>
-          <div className="space-y-2">
+          <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible">
             {doc.pages.map((p) => (
               <button
                 key={p.page_number}
                 onClick={() => setActivePageNum(p.page_number)}
                 className={cn(
-                  "w-full p-2 rounded-lg border text-left transition-all",
+                  "shrink-0 w-28 lg:w-full p-2 rounded-xl border text-left transition-all",
                   currentPage?.page_number === p.page_number
-                    ? "bg-[#152231] border-[#40E9E1] text-[#40E9E1]"
-                    : "bg-[#0B121D] border-[#91A3B6]/15 text-[#91A3B6] hover:text-[#E8F0F7]"
+                    ? "bg-black border-black text-white"
+                    : "bg-[#F5F5F7] border-black/5 text-[#6E6E73] hover:text-black"
                 )}
               >
                 {p.image_url ? (
                   <img
                     src={p.image_url}
                     alt={`Page ${p.page_number}`}
-                    className="w-full h-24 object-contain rounded bg-[#080D15] mb-1.5"
+                    className="w-full h-20 object-contain rounded-lg bg-white mb-1.5"
                   />
                 ) : (
-                  <div className="w-full h-12 rounded bg-[#080D15] flex items-center justify-center text-[10px] font-mono mb-1">
-                    TEXT / STRUCT
+                  <div className="w-full h-12 rounded-lg bg-white flex items-center justify-center text-[10px] font-mono text-black mb-1">
+                    TEXT
                   </div>
                 )}
                 <div className="text-[11px] font-mono flex justify-between">
-                  <span>Page {p.page_number}</span>
+                  <span>P.{p.page_number}</span>
                   <span>
                     {doc.fields.filter((f) => f.page_number === p.page_number).length}f
                   </span>
@@ -269,61 +260,61 @@ export function DocumentWorkspaceView({
           </div>
 
           {doc.classification && (
-            <div className="mt-auto pt-3 border-t border-[#91A3B6]/15 space-y-1.5 text-[11px]">
-              <div className="font-mono uppercase text-[#91A3B6]">Signals</div>
+            <div className="hidden lg:block mt-auto pt-3 border-t border-black/8 space-y-1.5 text-[11px]">
+              <div className="font-mono uppercase text-[#6E6E73]">Signals</div>
               <div className="flex flex-wrap gap-1">
                 {doc.classification.is_form && (
-                  <span className="px-1.5 py-0.5 rounded bg-[#40E9E1]/15 text-[#40E9E1]">Form</span>
+                  <span className="px-2 py-0.5 rounded-full bg-black text-white">Form</span>
                 )}
                 {doc.classification.has_tables && (
-                  <span className="px-1.5 py-0.5 rounded bg-[#1FBFCA]/15 text-[#1FBFCA]">Tables</span>
+                  <span className="px-2 py-0.5 rounded-full bg-[#F5F5F7] text-black border border-black/10">Tables</span>
                 )}
                 {doc.classification.has_signatures && (
-                  <span className="px-1.5 py-0.5 rounded bg-[#32D6A0]/15 text-[#32D6A0]">
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                     Signatures
                   </span>
                 )}
                 {doc.classification.has_stamps && (
-                  <span className="px-1.5 py-0.5 rounded bg-[#F6B94A]/15 text-[#F6B94A]">Stamps</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Stamps</span>
                 )}
                 {doc.classification.has_handwriting && (
-                  <span className="px-1.5 py-0.5 rounded bg-[#F6B94A]/15 text-[#F6B94A]">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                     Handwriting
                   </span>
                 )}
               </div>
-              <p className="text-[#91A3B6] leading-relaxed">{doc.classification.summary}</p>
+              <p className="text-[#6E6E73] leading-relaxed">{doc.classification.summary}</p>
             </div>
           )}
         </div>
 
-        {/* Centre: Original Document Viewer with Cyan Highlighted Regions & Connector */}
-        <div className="lg:col-span-5 kv-panel rounded-xl flex flex-col min-h-0 overflow-hidden">
-          <div className="px-3 py-2 border-b border-[#91A3B6]/15 flex items-center justify-between bg-[#0B121D]">
-            <span className="text-xs font-mono text-[#91A3B6]">
+        {/* Centre: Original Document Viewer with Bounding Box Overlays */}
+        <div className="lg:col-span-5 apple-card rounded-2xl flex flex-col min-h-[380px] lg:min-h-0 overflow-hidden">
+          <div className="px-3.5 py-2.5 border-b border-black/8 flex items-center justify-between bg-white">
+            <span className="text-xs font-mono text-[#6E6E73]">
               ORIGINAL VIEWER · PAGE {currentPage?.page_number ?? 1}
             </span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setZoom((z) => Math.max(0.5, Number((z - 0.15).toFixed(2))))}
-                className="p-1.5 rounded hover:bg-[#152231] text-[#91A3B6] hover:text-[#E8F0F7]"
+                className="p-1.5 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-black"
                 title="Zoom Out"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[11px] font-mono text-[#E8F0F7] w-11 text-center">
+              <span className="text-[11px] font-mono text-black w-11 text-center">
                 {Math.round(zoom * 100)}%
               </span>
               <button
                 onClick={() => setZoom((z) => Math.min(2.2, Number((z + 0.15).toFixed(2))))}
-                className="p-1.5 rounded hover:bg-[#152231] text-[#91A3B6] hover:text-[#E8F0F7]"
+                className="p-1.5 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-black"
                 title="Zoom In"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setZoom(1)}
-                className="p-1.5 rounded hover:bg-[#152231] text-[#91A3B6] hover:text-[#E8F0F7]"
+                className="p-1.5 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-black"
                 title="Reset Zoom"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -331,10 +322,10 @@ export function DocumentWorkspaceView({
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto p-4 bg-[#080D15] flex items-start justify-center">
+          <div className="flex-1 overflow-auto p-4 bg-[#F5F5F7] flex items-start justify-center">
             {currentPage?.image_url ? (
               <div
-                className="relative inline-block shadow-2xl border border-[#91A3B6]/20 rounded overflow-hidden"
+                className="relative inline-block shadow-lg border border-black/10 rounded-xl overflow-hidden bg-white"
                 style={{ width: `${Math.round(zoom * 100)}%`, maxWidth: "none" }}
               >
                 <img
@@ -342,7 +333,6 @@ export function DocumentWorkspaceView({
                   alt={`Document page ${currentPage.page_number}`}
                   className="w-full h-auto block select-none"
                 />
-                {/* SVG Evidence Overlay */}
                 <svg
                   viewBox="0 0 1000 1000"
                   preserveAspectRatio="none"
@@ -356,10 +346,10 @@ export function DocumentWorkspaceView({
                     const w = f.bounding_box.width * 1000;
                     const h = f.bounding_box.height * 1000;
                     const strokeColor = isSelected
-                      ? "#40E9E1"
+                      ? "#000000"
                       : f.verification_status === "VERIFIED"
-                        ? "#32D6A0"
-                        : "#F6B94A";
+                        ? "#059669"
+                        : "#D97706";
                     return (
                       <g key={f.field_id}>
                         <rect
@@ -367,20 +357,20 @@ export function DocumentWorkspaceView({
                           y={y}
                           width={w}
                           height={h}
-                          fill={isSelected ? "rgba(64,233,225,0.20)" : "rgba(64,233,225,0.06)"}
+                          fill={isSelected ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.03)"}
                           stroke={strokeColor}
                           strokeWidth={isSelected ? 4 : 2}
                           rx={4}
                         />
                         {isSelected && (
                           <>
-                            <circle cx={x + w} cy={y + h / 2} r={7} fill="#40E9E1" />
+                            <circle cx={x + w} cy={y + h / 2} r={7} fill="#000000" />
                             <line
                               x1={x + w}
                               y1={y + h / 2}
                               x2={1000}
                               y2={y + h / 2}
-                              stroke="#40E9E1"
+                              stroke="#000000"
                               strokeWidth={3}
                               strokeDasharray="8 5"
                             />
@@ -393,7 +383,7 @@ export function DocumentWorkspaceView({
               </div>
             ) : (
               <div className="w-full space-y-2 text-xs font-mono">
-                <div className="text-[#40E9E1] mb-2">
+                <div className="text-black font-semibold mb-2">
                   Structured Document View ({doc.format.toUpperCase()})
                 </div>
                 {(currentPage?.structural_blocks || []).map((b) => {
@@ -404,13 +394,13 @@ export function DocumentWorkspaceView({
                     <div
                       key={b.ref}
                       className={cn(
-                        "p-2.5 rounded border transition-all",
+                        "p-2.5 rounded-xl border transition-all",
                         isHighlighted
-                          ? "bg-[#40E9E1]/15 border-[#40E9E1] text-[#E8F0F7]"
-                          : "bg-[#101A27] border-[#91A3B6]/15 text-[#91A3B6]"
+                          ? "bg-black text-white border-black"
+                          : "bg-white border-black/10 text-[#6E6E73]"
                       )}
                     >
-                      <span className="text-[10px] text-[#1FBFCA] mr-2">[{b.ref}]</span>
+                      <span className="text-[10px] opacity-60 mr-2">[{b.ref}]</span>
                       <span>{b.text}</span>
                     </div>
                   );
@@ -421,16 +411,16 @@ export function DocumentWorkspaceView({
         </div>
 
         {/* Right: Data Extraction & Proofing */}
-        <div className="lg:col-span-5 kv-panel rounded-xl flex flex-col min-h-0 overflow-hidden">
-          <div className="px-3 py-2 border-b border-[#91A3B6]/15 bg-[#0B121D] flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        <div className="lg:col-span-5 apple-card rounded-2xl flex flex-col min-h-[400px] lg:min-h-0 overflow-hidden">
+          <div className="px-3.5 py-2.5 border-b border-black/8 bg-white flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setRightTab("fields")}
                 className={cn(
-                  "px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5",
+                  "px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors",
                   rightTab === "fields"
-                    ? "bg-[#152231] text-[#40E9E1] border border-[#40E9E1]/35"
-                    : "text-[#91A3B6] hover:text-[#E8F0F7]"
+                    ? "bg-black text-white"
+                    : "text-[#6E6E73] hover:text-black hover:bg-[#F5F5F7]"
                 )}
               >
                 <ListChecks className="w-3.5 h-3.5" />
@@ -439,10 +429,10 @@ export function DocumentWorkspaceView({
               <button
                 onClick={() => setRightTab("tables")}
                 className={cn(
-                  "px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5",
+                  "px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors",
                   rightTab === "tables"
-                    ? "bg-[#152231] text-[#40E9E1] border border-[#40E9E1]/35"
-                    : "text-[#91A3B6] hover:text-[#E8F0F7]"
+                    ? "bg-black text-white"
+                    : "text-[#6E6E73] hover:text-black hover:bg-[#F5F5F7]"
                 )}
               >
                 <Table2 className="w-3.5 h-3.5" />
@@ -451,41 +441,41 @@ export function DocumentWorkspaceView({
               <button
                 onClick={() => setRightTab("logs")}
                 className={cn(
-                  "px-2.5 py-1 rounded text-xs font-medium",
+                  "px-3 py-1 rounded-full text-xs font-medium transition-colors",
                   rightTab === "logs"
-                    ? "bg-[#152231] text-[#40E9E1] border border-[#40E9E1]/35"
-                    : "text-[#91A3B6] hover:text-[#E8F0F7]"
+                    ? "bg-black text-white"
+                    : "text-[#6E6E73] hover:text-black hover:bg-[#F5F5F7]"
                 )}
               >
                 Audit ({doc.processing_logs.length})
               </button>
             </div>
             <div className="flex items-center gap-2 text-[11px] font-mono">
-              <span className="text-[#32D6A0]">{verifiedCount}V</span>
-              <span className="text-[#F6B94A]">{reviewCount}R</span>
+              <span className="text-emerald-700">{verifiedCount}V</span>
+              <span className="text-amber-700">{reviewCount}R</span>
             </div>
           </div>
 
           {rightTab === "fields" && (
             <>
-              <div className="p-2.5 border-b border-[#91A3B6]/15">
+              <div className="p-2.5 border-b border-black/8 bg-white">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-[#91A3B6] absolute left-2.5 top-2.5" />
+                  <Search className="w-3.5 h-3.5 text-[#6E6E73] absolute left-3 top-2.5" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Filter extracted labels, values, or evidence..."
-                    className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-[#080D15] border border-[#91A3B6]/20 text-xs text-[#E8F0F7] placeholder:text-[#91A3B6]/60 focus:outline-none focus:border-[#40E9E1]"
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#F5F5F7] border border-black/10 text-xs text-black placeholder:text-[#6E6E73] focus:outline-none focus:border-black"
                   />
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#F5F5F7]/50">
                 {filteredFields.length === 0 ? (
-                  <div className="text-xs text-[#91A3B6] text-center py-8">
+                  <div className="text-xs text-[#6E6E73] text-center py-8">
                     {doc.fields.length === 0
-                      ? 'No fields extracted yet. Click "Run AI Extraction" above.'
+                      ? 'No fields extracted yet. Click "Run Extraction" above.'
                       : "No matching fields."}
                   </div>
                 ) : (
@@ -496,23 +486,23 @@ export function DocumentWorkspaceView({
                         key={field.field_id}
                         onClick={() => handleSelectField(field)}
                         className={cn(
-                          "p-3 rounded-lg border cursor-pointer transition-all space-y-1.5",
+                          "p-3.5 rounded-2xl border cursor-pointer transition-all space-y-2",
                           isSelected
-                            ? "bg-[#152231] border-[#40E9E1] shadow-[0_0_16px_rgba(64,233,225,0.12)]"
-                            : "bg-[#0B121D] border-[#91A3B6]/15 hover:border-[#40E9E1]/40"
+                            ? "bg-white border-black shadow-md"
+                            : "bg-white border-black/8 hover:border-black/30"
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="text-xs font-medium text-[#91A3B6]">
+                            <div dir="auto" className="text-xs font-medium text-[#6E6E73]">
                               {field.label}
                             </div>
                             <div
                               dir="auto"
-                              className="text-sm font-semibold text-[#E8F0F7] mt-0.5 break-words"
+                              className="text-sm font-semibold text-black mt-0.5 break-words"
                             >
                               {field.value === null || field.value === "" ? (
-                                <span className="italic text-[#91A3B6]/60">&lt;empty&gt;</span>
+                                <span className="italic text-[#6E6E73]">&lt;empty&gt;</span>
                               ) : (
                                 String(field.value)
                               )}
@@ -522,12 +512,12 @@ export function DocumentWorkspaceView({
                           <div className="shrink-0 flex flex-col items-end gap-1">
                             <span
                               className={cn(
-                                "text-[10px] font-mono px-1.5 py-0.5 rounded flex items-center gap-1",
+                                "text-[10px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1",
                                 field.verification_status === "VERIFIED"
-                                  ? "bg-[#32D6A0]/15 text-[#32D6A0]"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                   : field.verification_status === "NEEDS_REVIEW"
-                                    ? "bg-[#F6B94A]/15 text-[#F6B94A]"
-                                    : "bg-[#F87171]/15 text-[#F87171]"
+                                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                    : "bg-red-50 text-red-700 border border-red-200"
                               )}
                             >
                               {field.verification_status === "VERIFIED" && (
@@ -541,7 +531,7 @@ export function DocumentWorkspaceView({
                               )}
                               {field.verification_status}
                             </span>
-                            <span className="text-[10px] font-mono text-[#91A3B6]">
+                            <span className="text-[10px] font-mono text-[#6E6E73]">
                               p.{field.page_number} · {field.coordinate_source}
                             </span>
                           </div>
@@ -550,7 +540,7 @@ export function DocumentWorkspaceView({
                         {field.source_text && (
                           <div
                             dir="auto"
-                            className="text-[11px] font-mono text-[#91A3B6] bg-[#080D15] px-2 py-1 rounded border border-[#91A3B6]/10 truncate"
+                            className="text-[11px] font-mono text-[#6E6E73] bg-[#F5F5F7] px-2.5 py-1.5 rounded-xl truncate"
                             title={field.source_text}
                           >
                             Evidence: “{field.source_text}”
@@ -558,14 +548,14 @@ export function DocumentWorkspaceView({
                         )}
 
                         {field.verification_status !== "VERIFIED" && (
-                          <div className="flex justify-end pt-1">
+                          <div className="flex justify-end pt-0.5">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 void markVisuallyVerified(field);
                               }}
                               disabled={busyAction === field.field_id}
-                              className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#32D6A0]/10 hover:bg-[#32D6A0]/20 text-[#32D6A0] border border-[#32D6A0]/30 flex items-center gap-1"
+                              className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-black text-white hover:bg-[#1D1D1F] flex items-center gap-1"
                             >
                               <Eye className="w-3 h-3" />
                               Verify Visually
@@ -581,28 +571,28 @@ export function DocumentWorkspaceView({
           )}
 
           {rightTab === "tables" && (
-            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 space-y-4 bg-[#F5F5F7]/50">
               {doc.tables.length === 0 ? (
-                <div className="text-xs text-[#91A3B6] text-center py-8">
+                <div className="text-xs text-[#6E6E73] text-center py-8">
                   No tables detected in this document.
                 </div>
               ) : (
                 doc.tables.map((t) => (
                   <div
                     key={t.table_id}
-                    className="rounded-lg border border-[#91A3B6]/20 bg-[#0B121D] overflow-hidden"
+                    className="rounded-2xl border border-black/10 bg-white overflow-hidden"
                   >
-                    <div className="px-3 py-2 bg-[#152231] text-xs font-medium text-[#E8F0F7] flex justify-between">
+                    <div className="px-3.5 py-2.5 bg-[#F5F5F7] text-xs font-semibold text-black flex justify-between">
                       <span>{t.title || t.table_id}</span>
-                      <span className="font-mono text-[#40E9E1]">Page {t.page_number}</span>
+                      <span className="font-mono text-[#6E6E73]">Page {t.page_number}</span>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs text-left">
                         {t.headers.length > 0 && (
-                          <thead className="bg-[#080D15] text-[#91A3B6] font-mono">
+                          <thead className="bg-white text-[#6E6E73] font-mono border-b border-black/8">
                             <tr>
                               {t.headers.map((h, i) => (
-                                <th key={i} className="px-2.5 py-1.5 border-b border-[#91A3B6]/15">
+                                <th key={i} className="px-3 py-2">
                                   {h}
                                 </th>
                               ))}
@@ -611,9 +601,9 @@ export function DocumentWorkspaceView({
                         )}
                         <tbody>
                           {t.rows.map((row, rIdx) => (
-                            <tr key={rIdx} className="border-b border-[#91A3B6]/10">
+                            <tr key={rIdx} className="border-b border-black/5">
                               {row.map((cell, cIdx) => (
-                                <td key={cIdx} dir="auto" className="px-2.5 py-1.5 text-[#E8F0F7]">
+                                <td key={cIdx} dir="auto" className="px-3 py-2 text-black">
                                   {cell}
                                 </td>
                               ))}
@@ -629,19 +619,19 @@ export function DocumentWorkspaceView({
           )}
 
           {rightTab === "logs" && (
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#F5F5F7]/50">
               {doc.processing_logs.map((log, idx) => (
                 <div
                   key={idx}
-                  className="p-2.5 rounded-lg bg-[#0B121D] border border-[#91A3B6]/15 text-xs space-y-1"
+                  className="p-3 rounded-2xl bg-white border border-black/8 text-xs space-y-1"
                 >
-                  <div className="flex justify-between font-medium text-[#E8F0F7]">
+                  <div className="flex justify-between font-semibold text-black">
                     <span>{log.step}</span>
-                    <span className="font-mono text-[#40E9E1]">
+                    <span className="font-mono text-[#6E6E73]">
                       {formatDuration(log.duration_ms)}
                     </span>
                   </div>
-                  <div className="text-[11px] font-mono text-[#91A3B6]">
+                  <div className="text-[11px] font-mono text-[#6E6E73]">
                     {log.provider ? "Kashfara Multimodal Core" : "Kashfara Evidence Engine"}
                     {log.input_tokens ? ` · ${log.input_tokens} in / ${log.output_tokens} out` : ""}
                   </div>

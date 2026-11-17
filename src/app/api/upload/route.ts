@@ -26,6 +26,16 @@ export async function POST(req: Request) {
       const pageFiles = formData
         .getAll("rendered_pages")
         .filter((v): v is File => v instanceof File);
+      const rawTextsJson = formData.get("page_texts");
+      let pageTexts: string[] = [];
+      if (typeof rawTextsJson === "string") {
+        try {
+          const parsed = JSON.parse(rawTextsJson);
+          if (Array.isArray(parsed)) pageTexts = parsed.map(String);
+        } catch {
+          // ignore malformed page_texts
+        }
+      }
       const roughCount = DocumentIngestion.countPdfPagesRough(buffer);
       const pageCount = pageFiles.length > 0 ? pageFiles.length : roughCount;
 
@@ -49,6 +59,7 @@ export async function POST(req: Request) {
             height: prep.height,
             image_url: dataUrl,
             mime_type: "image/jpeg",
+            text_content: pageTexts[i] || undefined,
           });
         }
       } else {

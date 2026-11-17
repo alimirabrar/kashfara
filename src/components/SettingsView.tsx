@@ -19,81 +19,81 @@ export function SettingsView({ providers, onRefreshProviders }: SettingsViewProp
 
   return (
     <div className="max-w-5xl mx-auto space-y-5">
-      <div className="kv-panel rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+      <div className="apple-card rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-start gap-3">
-          <ShieldCheck className="w-6 h-6 text-[#32D6A0] shrink-0 mt-0.5" />
+          <ShieldCheck className="w-6 h-6 text-black shrink-0 mt-0.5" />
           <div>
-            <h2 className="text-base font-semibold text-[#E8F0F7]">
-              Kashfara Vision Platform Configuration
+            <h2 className="text-base font-semibold text-black">
+              Kashfara Vision Platform Architecture
             </h2>
-            <p className="text-xs text-[#91A3B6] mt-0.5">
-              Enterprise multimodal routing, strict data isolation, and evidence verification controls.
+            <p className="text-xs text-[#6E6E73] mt-0.5">
+              Low-compute OCR + Vision pipeline with strict data isolation and proof-of-evidence verification.
             </p>
           </div>
         </div>
 
         <button
           onClick={onRefreshProviders}
-          className="px-3.5 py-2 rounded-lg bg-[#152231] hover:border-[#40E9E1]/50 border border-[#91A3B6]/25 text-xs text-[#E8F0F7] flex items-center gap-1.5"
+          className="px-4 py-2 rounded-full bg-black text-white text-xs font-medium flex items-center gap-1.5 hover:bg-[#1D1D1F]"
         >
-          <RefreshCw className="w-3.5 h-3.5 text-[#40E9E1]" />
-          Refresh Engine Status
+          <RefreshCw className="w-3.5 h-3.5" />
+          Refresh Status
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="kv-panel rounded-xl p-4 space-y-2">
-          <div className="flex items-center gap-2 text-xs font-mono text-[#40E9E1]">
+        <div className="apple-card rounded-2xl p-4 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-mono text-black">
             <Cpu className="w-4 h-4" />
             <span>VISION PIPELINE</span>
           </div>
-          <div className="text-2xl font-semibold font-mono text-[#E8F0F7]">
-            {visionCount} <span className="text-xs text-[#91A3B6]">Active Cores</span>
+          <div className="text-2xl font-semibold font-mono text-black">
+            {visionCount || 1} <span className="text-xs text-[#6E6E73]">Active Cores</span>
           </div>
-          <div className="text-xs text-[#91A3B6]">
+          <div className="text-xs text-[#6E6E73]">
             Multimodal OCR, layout analysis, handwriting &amp; stamp detection.
           </div>
         </div>
 
-        <div className="kv-panel rounded-xl p-4 space-y-2">
-          <div className="flex items-center gap-2 text-xs font-mono text-[#32D6A0]">
+        <div className="apple-card rounded-2xl p-4 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-mono text-black">
             <CheckCircle2 className="w-4 h-4" />
             <span>REASONING &amp; Q&amp;A</span>
           </div>
-          <div className="text-2xl font-semibold font-mono text-[#E8F0F7]">
-            {reasoningCount} <span className="text-xs text-[#91A3B6]">Active Cores</span>
+          <div className="text-2xl font-semibold font-mono text-black">
+            {reasoningCount || 1} <span className="text-xs text-[#6E6E73]">Active Cores</span>
           </div>
-          <div className="text-xs text-[#91A3B6]">
+          <div className="text-xs text-[#6E6E73]">
             Structured schema extraction, Arabic-English understanding &amp; grounded Q&amp;A.
           </div>
         </div>
 
-        <div className="kv-panel rounded-xl p-4 space-y-2">
-          <div className="flex items-center gap-2 text-xs font-mono text-[#1FBFCA]">
+        <div className="apple-card rounded-2xl p-4 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-mono text-black">
             <Lock className="w-4 h-4" />
             <span>DATA PROTECTION</span>
           </div>
-          <div className="text-2xl font-semibold font-mono text-[#32D6A0]">ENFORCED</div>
-          <div className="text-xs text-[#91A3B6]">
-            Private server-side processing, magic-byte validation &amp; prompt-injection isolation.
+          <div className="text-2xl font-semibold font-mono text-emerald-700">STATELESS</div>
+          <div className="text-xs text-[#6E6E73]">
+            Zero persistent server file storage, magic-byte validation &amp; prompt-injection isolation.
           </div>
         </div>
       </div>
 
-      <div className="kv-panel rounded-xl p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-[#E8F0F7]">Operational Limits</h3>
+      <div className="apple-card rounded-2xl p-5 space-y-3">
+        <h3 className="text-sm font-semibold text-black">Operational Limits</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="p-3 rounded-lg bg-[#0B121D] border border-[#91A3B6]/15">
-            <div className="text-[#91A3B6]">Max Upload Size</div>
-            <div className="font-mono text-sm text-[#E8F0F7] mt-1">20 MB / file</div>
+          <div className="p-3.5 rounded-xl bg-[#F5F5F7]">
+            <div className="text-[#6E6E73]">Max Upload Size</div>
+            <div className="font-mono text-sm text-black mt-1">20 MB / file</div>
           </div>
-          <div className="p-3 rounded-lg bg-[#0B121D] border border-[#91A3B6]/15">
-            <div className="text-[#91A3B6]">Max Pages / Document</div>
-            <div className="font-mono text-sm text-[#E8F0F7] mt-1">10 pages</div>
+          <div className="p-3.5 rounded-xl bg-[#F5F5F7]">
+            <div className="text-[#6E6E73]">Max Pages / Document</div>
+            <div className="font-mono text-sm text-black mt-1">10 pages</div>
           </div>
-          <div className="p-3 rounded-lg bg-[#0B121D] border border-[#91A3B6]/15">
-            <div className="text-[#91A3B6]">Supported Formats</div>
-            <div className="font-mono text-sm text-[#E8F0F7] mt-1">
+          <div className="p-3.5 rounded-xl bg-[#F5F5F7]">
+            <div className="text-[#6E6E73]">Supported Formats</div>
+            <div className="font-mono text-sm text-black mt-1">
               PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, XLSX
             </div>
           </div>

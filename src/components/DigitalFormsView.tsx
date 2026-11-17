@@ -27,8 +27,8 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
 
   if (!activeDoc) {
     return (
-      <div className="max-w-3xl mx-auto py-12 text-center text-sm text-[#91A3B6]">
-        Open a document in the Document Workspace first to digitalize its form fields.
+      <div className="max-w-3xl mx-auto py-12 text-center text-sm text-[#6E6E73]">
+        Open a document in Document Proofing first to digitalize its form fields.
       </div>
     );
   }
@@ -117,16 +117,16 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
   const isRtl = rtlOverride ?? formState?.is_rtl ?? false;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4">
-      <div className="no-print kv-panel rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="max-w-6xl mx-auto space-y-4">
+      <div className="no-print apple-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <FileSpreadsheet className="w-5 h-5 text-[#40E9E1]" />
+          <FileSpreadsheet className="w-5 h-5 text-black" />
           <div>
-            <h2 className="text-base font-semibold text-[#E8F0F7]">
+            <h2 className="text-base font-semibold text-black">
               Digital Form — {activeDoc.filename}
             </h2>
-            <p className="text-xs text-[#91A3B6]">
-              Side-by-side editable digital representation preserving empty fields & section order.
+            <p className="text-xs text-[#6E6E73]">
+              Side-by-side editable digital representation preserving empty fields &amp; section order.
             </p>
           </div>
         </div>
@@ -134,9 +134,9 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setRtlOverride(!isRtl)}
-            className="px-3 py-1.5 rounded-lg bg-[#152231] border border-[#91A3B6]/25 text-xs text-[#E8F0F7] flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-full bg-[#F5F5F7] border border-black/10 text-xs text-black flex items-center gap-1.5"
           >
-            <Languages className="w-3.5 h-3.5 text-[#40E9E1]" />
+            <Languages className="w-3.5 h-3.5" />
             {isRtl ? "RTL (Arabic)" : "LTR"}
           </button>
 
@@ -145,25 +145,25 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
               <button
                 onClick={saveFormEdits}
                 disabled={busy}
-                className="px-3 py-1.5 rounded-lg bg-[#32D6A0]/15 border border-[#32D6A0]/35 text-xs text-[#32D6A0] flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-full bg-black text-white text-xs font-medium flex items-center gap-1.5"
               >
                 <Save className="w-3.5 h-3.5" /> Save
               </button>
               <button
                 onClick={exportJson}
-                className="px-3 py-1.5 rounded-lg bg-[#152231] border border-[#91A3B6]/25 text-xs text-[#E8F0F7] flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-full bg-[#F5F5F7] border border-black/10 text-xs text-black flex items-center gap-1.5"
               >
-                <Download className="w-3.5 h-3.5 text-[#40E9E1]" /> JSON
+                <Download className="w-3.5 h-3.5" /> JSON
               </button>
               <button
                 onClick={exportCsv}
-                className="px-3 py-1.5 rounded-lg bg-[#152231] border border-[#91A3B6]/25 text-xs text-[#E8F0F7] flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-full bg-[#F5F5F7] border border-black/10 text-xs text-black flex items-center gap-1.5"
               >
-                <Download className="w-3.5 h-3.5 text-[#40E9E1]" /> CSV
+                <Download className="w-3.5 h-3.5" /> CSV
               </button>
               <button
                 onClick={() => window.print()}
-                className="px-3 py-1.5 rounded-lg bg-[#152231] border border-[#91A3B6]/25 text-xs text-[#E8F0F7] flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-full bg-[#F5F5F7] border border-black/10 text-xs text-black flex items-center gap-1.5"
               >
                 <Printer className="w-3.5 h-3.5" /> Print
               </button>
@@ -172,7 +172,7 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
             <button
               onClick={generateForm}
               disabled={busy}
-              className="px-4 py-2 rounded-lg bg-[#40E9E1] hover:bg-[#1FBFCA] text-[#080D15] text-xs font-semibold flex items-center gap-1.5"
+              className="px-4 py-2 rounded-full bg-black hover:bg-[#1D1D1F] text-white text-xs font-semibold flex items-center gap-1.5"
             >
               {busy ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -186,18 +186,18 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
       </div>
 
       {saveMsg && (
-        <div className="no-print text-xs font-mono text-[#32D6A0] px-2">{saveMsg}</div>
+        <div className="no-print text-xs font-mono text-emerald-700 px-2">{saveMsg}</div>
       )}
 
       {!formState ? (
-        <div className="kv-panel rounded-xl p-10 text-center text-sm text-[#91A3B6]">
-          Click <strong className="text-[#40E9E1]">DIGITALIZE THIS FORM</strong> above to generate an editable digital representation.
+        <div className="apple-card rounded-2xl p-10 text-center text-sm text-[#6E6E73]">
+          Click <strong className="text-black">DIGITALIZE THIS FORM</strong> above to generate an editable digital representation.
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Original Reference */}
-          <div className="no-print lg:col-span-5 kv-panel rounded-xl p-4 space-y-3 max-h-[75vh] overflow-y-auto">
-            <div className="text-xs font-mono uppercase text-[#91A3B6]">
+          <div className="no-print lg:col-span-5 apple-card rounded-2xl p-4 space-y-3 max-h-[75vh] overflow-y-auto">
+            <div className="text-xs font-mono uppercase text-[#6E6E73]">
               Original Document Comparison
             </div>
             {activeDoc.pages.map((p) =>
@@ -206,12 +206,12 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
                   key={p.page_number}
                   src={p.image_url}
                   alt={`Original page ${p.page_number}`}
-                  className="w-full rounded border border-[#91A3B6]/20"
+                  className="w-full rounded-xl border border-black/10"
                 />
               ) : (
                 <pre
                   key={p.page_number}
-                  className="text-xs font-mono text-[#91A3B6] whitespace-pre-wrap bg-[#080D15] p-3 rounded"
+                  className="text-xs font-mono text-[#6E6E73] whitespace-pre-wrap bg-[#F5F5F7] p-3 rounded-xl"
                 >
                   {p.text_content}
                 </pre>
@@ -222,18 +222,18 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
           {/* Editable Digital Form */}
           <div
             dir={isRtl ? "rtl" : "ltr"}
-            className="lg:col-span-7 kv-panel rounded-xl p-6 space-y-6 max-h-[75vh] overflow-y-auto"
+            className="lg:col-span-7 apple-card rounded-2xl p-6 space-y-6 max-h-[75vh] overflow-y-auto"
           >
-            <div className="border-b border-[#91A3B6]/20 pb-3">
-              <h3 className="text-lg font-semibold text-[#E8F0F7]">{formState.title}</h3>
-              <div className="text-xs font-mono text-[#91A3B6] mt-1">
+            <div className="border-b border-black/10 pb-3">
+              <h3 className="text-lg font-semibold text-black">{formState.title}</h3>
+              <div className="text-xs font-mono text-[#6E6E73] mt-1">
                 Language: {formState.language} · {formState.sections.length} section(s)
               </div>
             </div>
 
             {formState.sections.map((sec, sIdx) => (
               <div key={sIdx} className="space-y-3">
-                <h4 className="text-sm font-semibold text-[#40E9E1] border-b border-[#40E9E1]/20 pb-1">
+                <h4 className="text-sm font-semibold text-black border-b border-black/10 pb-1">
                   {sec.title}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -242,7 +242,7 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
                       key={f.id}
                       className={f.field_type === "textarea" ? "md:col-span-2" : ""}
                     >
-                      <label className="block text-xs text-[#91A3B6] mb-1">
+                      <label className="block text-xs text-[#6E6E73] mb-1">
                         {f.label}
                         <span className="text-[10px] font-mono opacity-60 mx-1.5">
                           (p.{f.page_number})
@@ -250,7 +250,7 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
                       </label>
 
                       {f.field_type === "checkbox" ? (
-                        <label className="inline-flex items-center gap-2 text-xs text-[#E8F0F7] cursor-pointer">
+                        <label className="inline-flex items-center gap-2 text-xs text-black cursor-pointer">
                           <input
                             type="checkbox"
                             checked={Boolean(f.checked)}
@@ -261,7 +261,7 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
                               next.sections[sIdx].fields[fIdx].is_empty = false;
                               setFormState(next);
                             }}
-                            className="rounded border-[#91A3B6]/40 bg-[#080D15] text-[#40E9E1]"
+                            className="rounded border-black/30 text-black"
                           />
                           <span>{f.checked ? "Checked" : "Unchecked"}</span>
                         </label>
@@ -277,11 +277,11 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
                             next.sections[sIdx].fields[fIdx].is_empty = v === "";
                             setFormState(next);
                           }}
-                          className="w-full px-3 py-2 rounded-lg bg-[#080D15] border border-[#91A3B6]/25 text-xs text-[#E8F0F7] focus:outline-none focus:border-[#40E9E1]"
+                          className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/10 text-xs text-black focus:outline-none focus:border-black"
                         />
                       ) : (
                         <input
-                          type={f.field_type === "number" ? "number" : f.field_type === "date" ? "text" : "text"}
+                          type={f.field_type === "number" ? "number" : "text"}
                           value={f.value === null ? "" : String(f.value)}
                           placeholder="<empty>"
                           onChange={(e) => {
@@ -291,7 +291,7 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
                             next.sections[sIdx].fields[fIdx].is_empty = v === "";
                             setFormState(next);
                           }}
-                          className="w-full px-3 py-2 rounded-lg bg-[#080D15] border border-[#91A3B6]/25 text-xs text-[#E8F0F7] focus:outline-none focus:border-[#40E9E1]"
+                          className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/10 text-xs text-black focus:outline-none focus:border-black"
                         />
                       )}
                     </div>

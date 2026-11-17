@@ -1,5 +1,5 @@
-import { KashfaraApp } from "@/components/KashfaraApp";
+import { LandingPage } from "@/components/LandingPage";
 
 export default function HomePage() {
-  return <KashfaraApp />;
+  return <LandingPage />;
 }
