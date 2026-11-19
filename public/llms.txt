@@ -1,0 +1,24 @@
+# KASHFARA VISION
+
+> 4-Billion-Parameter OCR + Vision Document Intelligence Platform for Arabic & English Enterprise Documents.
+
+Website: https://kashfara.com
+Live Demo: https://kashfara.com/demo
+
+## What Kashfara Vision Does
+Kashfara Vision combines fast structural OCR parsing with multimodal vision reasoning to extract structured data from Arabic (RTL), English (LTR), and bilingual documents with low compute and high accuracy.
+
+## Core Capabilities
+- **Hybrid OCR + Vision Pipeline**: Parses native PDF text layers and Office structures first, then runs multimodal vision reasoning for layout, handwriting, stamps, and signatures.
+- **Proof-of-Evidence Verification**: Every extracted field includes its original label, normalized value, exact page number, verbatim source quote, and normalized bounding-box coordinates.
+- **Automatic Form Digitalisation**: Detects fillable forms and converts them into editable digital schemas with Arabic RTL toggle, JSON export, CSV export, and print-ready output.
+- **Document-Grounded Q&A**: Answers questions strictly from the uploaded document with clickable page citations.
+- **Supported Formats**: PDF, PNG, JPG, JPEG, WEBP, TIFF, DOCX, PPTX, XLSX.
+
+## Enterprise Business Domains
+- **Finance & Accounting**: Arabic-English VAT / ZATCA / FTA invoices, bank statements, purchase orders, receipts.
+- **Banking & FinTech**: Corporate onboarding packs, balance sheets, trade finance documents.
+- **Legal & Enterprise HR**: Bilingual contracts, NDAs, employment agreements, onboarding forms.
+- **Logistics & Supply Chain**: Bills of Lading, delivery notes, packing lists, shipping manifests.
+- **Real Estate & Property**: Commercial leases, valuations, handover checklists.
+- **Healthcare & Insurance**: Medical claims, policy schedules, lab reports, intake forms.

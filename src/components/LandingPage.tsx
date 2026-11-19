@@ -585,6 +585,46 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* FAQ Section for Buyers, SEO & AI Readability */}
+      <section id="faq" className="py-20 px-4 sm:px-6 bg-white border-t border-black/8">
+        <div className="max-w-4xl mx-auto space-y-10">
+          <div className="text-center space-y-2">
+            <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
+              FREQUENTLY ASKED QUESTIONS
+            </div>
+            <h2 className="text-3xl font-semibold tracking-tight text-black">
+              Built for Speed, Accuracy &amp; Enterprise Trust.
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {[
+              {
+                q: "What makes Kashfara Vision different from standard OCR?",
+                a: "Kashfara combines fast structural OCR parsing with a 4-billion-parameter multimodal vision model, understanding layout, tables, stamps, signatures, and mixed Arabic-English context together.",
+              },
+              {
+                q: "Does it support Arabic RTL and bilingual documents?",
+                a: "Yes. Kashfara preserves right-to-left Arabic script, English LTR text, and mixed Arabic-English tables in invoices, contracts, leases, and forms.",
+              },
+              {
+                q: "How does Proof-of-Evidence verification work?",
+                a: "Every extracted field includes its original label, normalized value, page number, verbatim source quote, and normalized bounding-box coordinates so teams can audit results in one click.",
+              },
+              {
+                q: "What file formats can I test in the Live Demo?",
+                a: "You can upload PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, and XLSX files directly in the Live Demo at kashfara.com/demo.",
+              },
+            ].map((item) => (
+              <article key={item.q} className="apple-surface rounded-2xl p-6 space-y-2">
+                <h3 className="text-sm font-semibold text-black">{item.q}</h3>
+                <p className="text-xs sm:text-sm text-[#6E6E73] leading-relaxed">{item.a}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Bottom CTA */}
       <section className="py-20 px-4 sm:px-6 bg-[#F5F5F7]">
         <div className="max-w-4xl mx-auto rounded-3xl bg-black text-white p-8 sm:p-14 text-center space-y-6 shadow-2xl">

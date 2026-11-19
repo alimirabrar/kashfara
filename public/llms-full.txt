@@ -1,0 +1,27 @@
+# KASHFARA VISION — Full Product & Technical Overview
+
+URL: https://kashfara.com
+Interactive Live Demo: https://kashfara.com/demo
+
+## Executive Summary
+KASHFARA VISION is an enterprise multimodal document intelligence platform powered by a compact 4-billion-parameter (4B) OCR + Vision model purpose-trained for Arabic and English documents. Designed for Middle East and global businesses, it automates document classification, key-value extraction, table extraction, form digitalisation, and grounded document Q&A while keeping compute overhead low and accuracy high.
+
+## Why Businesses Choose Kashfara Vision
+1. **Built for Arabic RTL + English Bilingual Layouts**: Preserves right-to-left Arabic script, mixed Arabic-English tables, numbers, dates, stamps, and handwritten signatures without dropping or mangling text.
+2. **Low-Compute Hybrid Architecture**: Digital PDFs and Office files (DOCX, PPTX, XLSX) are structurally parsed first; page renders and text layers are combined for fast multimodal reasoning.
+3. **Verifiable Proof of Evidence**: Unlike black-box extractors, Kashfara anchors every field to its source page, verbatim quote, and normalized `[0..1]` bounding box, distinguishing model-proposed, source-matched, and visually verified fields.
+4. **Instant Form Digitalisation**: Converts paper or scanned forms into editable digital forms with empty-field preservation, Arabic RTL support, JSON/CSV export, and print formatting.
+5. **Stateless Privacy**: Documents in the live demo are processed without persistent server file storage.
+
+## Supported Document Formats
+- PDF (multi-page, scanned or digital)
+- Images: PNG, JPG, JPEG, WEBP, TIFF
+- Office Documents: DOCX, PPTX, XLSX
+
+## Industry Use Cases
+- **Finance, VAT & Tax Compliance**: Automated processing of FTA/ZATCA tax invoices, credit notes, bank statements, and vendor bills.
+- **Banking & FinTech**: Corporate KYC, financial statement parsing, and trade finance workflows.
+- **Real Estate & Property Management**: Commercial and residential lease extraction, inspection reports, and handover forms.
+- **Logistics & Supply Chain**: Bills of Lading, packing lists, delivery notes, and ERP-ready JSON/CSV export.
+- **Legal & HR**: Bilingual contracts, employment offers, and employee onboarding forms.
+- **Healthcare & Insurance**: Claims adjudication, policy schedules, and diagnostic/lab reports.
