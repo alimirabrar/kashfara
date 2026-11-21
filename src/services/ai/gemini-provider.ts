@@ -142,6 +142,7 @@ export const GeminiProvider = {
     temperature?: number;
     max_tokens?: number;
     json_mode?: boolean;
+    timeoutMs?: number;
   }): Promise<InferenceResponse> {
     const cfg = getConfig();
     if (!cfg.geminiApiKey) {
@@ -218,7 +219,7 @@ export const GeminiProvider = {
           "x-goog-api-key": cfg.geminiApiKey,
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(50_000),
+        signal: AbortSignal.timeout(params.timeoutMs ?? 30_000),
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Network timeout";

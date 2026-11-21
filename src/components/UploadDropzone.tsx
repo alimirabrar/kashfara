@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import { parseApiResponse } from "@/lib/api-response";
 import { UploadCloud, Loader2, AlertTriangle, FileCheck2 } from "lucide-react";
 import { renderPdfPagesToPngFiles } from "@/lib/pdf-client";
 import type { DocumentRecord } from "@/types/kashfara";
@@ -46,7 +47,7 @@ export function UploadDropzone({
 
       setStageText("Validating & preparing document...");
       const upRes = await fetch("/api/upload", { method: "POST", body: formData });
-      const upJson = await upRes.json();
+      const upJson = await parseApiResponse(upRes);
       if (!upRes.ok) {
         throw new Error(upJson.error || "Document upload failed.");
       }
@@ -57,7 +58,7 @@ export function UploadDropzone({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ document: upJson.document }),
       });
-      const procJson = await procRes.json();
+      const procJson = await parseApiResponse(procRes);
 
       if (!procRes.ok) {
         const reasons: string[] = Array.isArray(procJson.reasons) ? procJson.reasons : [];

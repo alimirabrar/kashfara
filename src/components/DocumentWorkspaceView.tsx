@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { parseApiResponse } from "@/lib/api-response";
 import {
   ZoomIn,
   ZoomOut,
@@ -95,7 +96,7 @@ export function DocumentWorkspaceView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ document: doc }),
       });
-      const json = await res.json();
+      const json = await parseApiResponse(res);
       if (!res.ok) throw new Error(json.error || "Processing failed.");
       onDocumentUpdated(json.document);
     } catch (err) {
@@ -115,7 +116,7 @@ export function DocumentWorkspaceView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ document: doc }),
       });
-      const json = await res.json();
+      const json = await parseApiResponse(res);
       if (!res.ok) throw new Error(json.error || "Digitalisation failed.");
       onDocumentUpdated(json.document);
       onOpenDigitalForms();
@@ -140,7 +141,7 @@ export function DocumentWorkspaceView({
           visually_verified: true,
         }),
       });
-      const json = await res.json();
+      const json = await parseApiResponse(res);
       if (res.ok && json.document) {
         onDocumentUpdated(json.document);
       }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { parseApiResponse } from "@/lib/api-response";
 import { AppShell, type NavSection } from "./AppShell";
 import { OverviewView } from "./OverviewView";
 import { DocumentWorkspaceView } from "./DocumentWorkspaceView";
@@ -55,12 +56,12 @@ export function KashfaraApp() {
       ]);
 
       if (provRes.ok) {
-        const pJson = await provRes.json();
+        const pJson = await parseApiResponse(provRes);
         setProviders(pJson.providers || []);
       }
 
       if (usageRes.ok) {
-        const uJson = await usageRes.json();
+        const uJson = await parseApiResponse(usageRes);
         setLedger(uJson.ledger || null);
         setCapacity(uJson.capacity || null);
       }

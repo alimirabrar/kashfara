@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { parseApiResponse } from "@/lib/api-response";
 import { Send, Loader2, Quote, AlertTriangle, FileSearch } from "lucide-react";
 import type { DocumentRecord, QACitation } from "@/types/kashfara";
 
@@ -38,7 +39,7 @@ export function DocumentQAView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: qText, document: activeDoc }),
       });
-      const json = await res.json();
+      const json = await parseApiResponse(res);
       if (!res.ok) throw new Error(json.error || "Q&A request failed.");
       onDocumentUpdated({
         ...activeDoc,

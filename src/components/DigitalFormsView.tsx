@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { parseApiResponse } from "@/lib/api-response";
 import {
   Download,
   Printer,
@@ -43,7 +44,7 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ document: activeDoc }),
       });
-      const json = await res.json();
+      const json = await parseApiResponse(res);
       if (!res.ok) throw new Error(json.error || "Digitalisation failed.");
       setFormState(json.digital_form);
       onDocumentUpdated(json.document);
@@ -64,7 +65,7 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ digital_form: formState }),
       });
-      const json = await res.json();
+      const json = await parseApiResponse(res);
       if (res.ok) {
         onDocumentUpdated({ ...activeDoc, digital_form: json.digital_form });
         setSaveMsg("Saved form edits.");

@@ -138,10 +138,14 @@ export const InferenceOrchestrator = {
     const failureNotes: string[] = [];
     let attempts = 0;
     const pages = params.pagesCount ?? (params.images?.length || 1);
+    // Stay inside the serverless function budget (routes run with maxDuration = 60).
+    const TIME_BUDGET_MS = 45_000;
 
     for (const model of models) {
       for (let retry = 0; retry < 2; retry++) {
-        if (Date.now() - startedAt > 100_000) break; // stay inside function time budget
+        const elapsedMs = Date.now() - startedAt;
+        const remainingMs = TIME_BUDGET_MS - elapsedMs;
+        if (remainingMs < 5_000) break; // no time left for another attempt
         attempts += 1;
         try {
           const res = await GeminiProvider.chatCompletion({
@@ -150,6 +154,7 @@ export const InferenceOrchestrator = {
             temperature: params.temperature ?? 0.1,
             max_tokens: params.maxTokens,
             json_mode: params.expectJson,
+            timeoutMs: Math.min(30_000, remainingMs - 2_000),
           });
 
           let parsed: T | null = null;
