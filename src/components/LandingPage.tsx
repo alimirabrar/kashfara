@@ -290,6 +290,7 @@ export function LandingPage() {
       </header>
 
       {/* Hero Section */}
+      <main>
       <section className="relative overflow-hidden pt-16 pb-20 sm:pt-24 sm:pb-28 px-4 sm:px-6">
         <div
           aria-hidden
@@ -646,6 +647,7 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-black/10 py-8 px-4 sm:px-6 bg-white">
