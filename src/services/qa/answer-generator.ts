@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import { InferenceOrchestrator } from "@/services/ai/inference-orchestrator";
-import { getPageImageForVision } from "@/services/documents/page-image";
 import { QARetrieval } from "./retrieval";
 import { CitationValidator } from "./citation-validator";
 import type { DocumentRecord, QACitation, QAMessage } from "@/types/kashfara";
@@ -26,15 +25,6 @@ export const AnswerGenerator = {
     assistantMessage: QAMessage;
   }> {
     const retrieved = QARetrieval.retrieve(doc, question);
-    const images: Array<{ base64: string; mimeType: string }> = [];
-
-    for (const pageNum of retrieved.relevantPages) {
-      const page = doc.pages.find((p) => p.page_number === pageNum);
-      if (page) {
-        const img = await getPageImageForVision(page);
-        if (img) images.push(img);
-      }
-    }
 
     const systemPrompt = `You are KASHFARA VISION's Document-Grounded Q&A Engine.
 Answer the user's question strictly from the selected document's pages, extracted fields, and tables.
@@ -63,11 +53,10 @@ Return ONLY valid JSON:
       documentId: doc.id,
       systemPrompt,
       userPrompt: `Question: ${question}\n\nGrounded Document Context:\n${retrieved.contextText}`,
-      images,
       requiresArabic: doc.classification?.is_rtl,
       expectJson: true,
-      maxTokens: 1600,
-      pagesCount: images.length || 1,
+      maxTokens: 4096,
+      pagesCount: retrieved.relevantPages.length || 1,
     });
 
     const rawCitations: QACitation[] = (res.parsed?.citations || []).map((c) => ({

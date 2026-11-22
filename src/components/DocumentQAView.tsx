@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { parseApiResponse } from "@/lib/api-response";
 import { Send, Loader2, Quote, AlertTriangle, FileSearch } from "lucide-react";
+import { stripPageImagesForApi } from "@/lib/utils";
 import type { DocumentRecord, QACitation } from "@/types/kashfara";
 
 interface DocumentQAViewProps {
@@ -37,7 +38,7 @@ export function DocumentQAView({
       const res = await fetch(`/api/documents/${activeDoc.id}/qa`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: qText, document: activeDoc }),
+        body: JSON.stringify({ question: qText, document: stripPageImagesForApi(activeDoc) }),
       });
       const json = await parseApiResponse(res);
       if (!res.ok) throw new Error(json.error || "Q&A request failed.");

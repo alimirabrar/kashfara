@@ -4,6 +4,8 @@ import React, { useRef, useState } from "react";
 import { parseApiResponse } from "@/lib/api-response";
 import { UploadCloud, Loader2, AlertTriangle, FileCheck2 } from "lucide-react";
 import { renderPdfPagesToPngFiles } from "@/lib/pdf-client";
+import { runOcrOnPageImage } from "@/lib/ocr-client";
+import { mergePageImagesFromClient, stripPageImagesForApi } from "@/lib/utils";
 import type { DocumentRecord } from "@/types/kashfara";
 
 interface UploadDropzoneProps {
@@ -43,6 +45,7 @@ export function UploadDropzone({
           formData.append("rendered_pages", pFile);
         }
         formData.append("page_texts", JSON.stringify(rendered.pageTexts));
+        formData.append("page_ocr_blocks", JSON.stringify(rendered.pageOcrBlocks));
       }
 
       setStageText("Validating & preparing document...");
@@ -52,11 +55,25 @@ export function UploadDropzone({
         throw new Error(upJson.error || "Document upload failed.");
       }
 
-      setStageText("Running Kashfara OCR + Vision reasoning & proofing...");
+      const clientDoc = upJson.document as DocumentRecord;
+
+      // Run Arabic + English OCR on any image or scanned PDF page that lacks native text
+      for (let i = 0; i < clientDoc.pages.length; i++) {
+        const page = clientDoc.pages[i];
+        const hasEnoughText = Boolean(page.text_content && page.text_content.trim().length >= 25);
+        if (page.image_url && !hasEnoughText) {
+          setStageText(`Running Arabic & English OCR (Page ${page.page_number}/${clientDoc.pages.length})...`);
+          const ocr = await runOcrOnPageImage(page.image_url, page.width, page.height);
+          page.text_content = ocr.text_content;
+          page.ocr_blocks = ocr.ocr_blocks;
+        }
+      }
+
+      setStageText("Reasoning over parsed OCR & layout...");
       const procRes = await fetch("/api/documents/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ document: upJson.document }),
+        body: JSON.stringify({ document: stripPageImagesForApi(clientDoc) }),
       });
       const procJson = await parseApiResponse(procRes);
 
@@ -64,11 +81,11 @@ export function UploadDropzone({
         const reasons: string[] = Array.isArray(procJson.reasons) ? procJson.reasons : [];
         const detail = reasons.length ? ` — ${reasons[reasons.length - 1]}` : "";
         const message = (procJson.error || "Processing failed.") + detail;
-        onUploadedAndProcessed({ ...upJson.document, status: "failed", error_message: message });
+        onUploadedAndProcessed({ ...clientDoc, status: "failed", error_message: message });
         throw new Error(message);
       }
 
-      onUploadedAndProcessed(procJson.document);
+      onUploadedAndProcessed(mergePageImagesFromClient(procJson.document, clientDoc));
       setStageText("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload or processing failed.");

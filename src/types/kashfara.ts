@@ -130,6 +130,12 @@ export interface DocumentClassification {
   model_used?: string;
 }
 
+export interface OcrBlock {
+  text: string;
+  bbox: BoundingBox;
+  confidence?: number;
+}
+
 export interface DocumentPage {
   page_number: number;
   width: number;
@@ -138,6 +144,7 @@ export interface DocumentPage {
   image_path?: string;
   mime_type?: string;
   text_content?: string;
+  ocr_blocks?: OcrBlock[];
   structural_blocks?: Array<{
     ref: string;
     type: "paragraph" | "heading" | "table" | "slide" | "sheet" | "cell";

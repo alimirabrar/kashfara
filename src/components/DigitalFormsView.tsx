@@ -11,6 +11,7 @@ import {
   Languages,
   FileSpreadsheet,
 } from "lucide-react";
+import { mergePageImagesFromClient, stripPageImagesForApi } from "@/lib/utils";
 import type { DigitalFormSchema, DocumentRecord } from "@/types/kashfara";
 
 interface DigitalFormsViewProps {
@@ -42,12 +43,12 @@ export function DigitalFormsView({ activeDoc, onDocumentUpdated }: DigitalFormsV
       const res = await fetch(`/api/documents/${activeDoc.id}/digitalize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ document: activeDoc }),
+        body: JSON.stringify({ document: stripPageImagesForApi(activeDoc) }),
       });
       const json = await parseApiResponse(res);
       if (!res.ok) throw new Error(json.error || "Digitalisation failed.");
       setFormState(json.digital_form);
-      onDocumentUpdated(json.document);
+      onDocumentUpdated(mergePageImagesFromClient(json.document, activeDoc));
     } catch (err) {
       setSaveMsg(err instanceof Error ? err.message : "Failed.");
     } finally {

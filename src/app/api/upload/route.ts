@@ -36,6 +36,16 @@ export async function POST(req: Request) {
           // ignore malformed page_texts
         }
       }
+      const rawBlocksJson = formData.get("page_ocr_blocks");
+      let pageOcrBlocks: Array<Array<{ text: string; bbox: { x: number; y: number; width: number; height: number } }>> = [];
+      if (typeof rawBlocksJson === "string") {
+        try {
+          const parsed = JSON.parse(rawBlocksJson);
+          if (Array.isArray(parsed)) pageOcrBlocks = parsed;
+        } catch {
+          // ignore malformed page_ocr_blocks
+        }
+      }
       const roughCount = DocumentIngestion.countPdfPagesRough(buffer);
       const pageCount = pageFiles.length > 0 ? pageFiles.length : roughCount;
 
@@ -60,6 +70,7 @@ export async function POST(req: Request) {
             image_url: dataUrl,
             mime_type: "image/jpeg",
             text_content: pageTexts[i] || undefined,
+            ocr_blocks: Array.isArray(pageOcrBlocks[i]) ? pageOcrBlocks[i] : undefined,
           });
         }
       } else {

@@ -29,11 +29,11 @@ export const EvidenceValidator = {
         page.height
       );
 
-      // For Office documents without pixel image rendering, never invent pixel coordinates
-      const hasImagePage = Boolean(page.image_path || page.image_url);
-      const finalBox = hasImagePage ? normalizedBox : null;
-
+      const hasOcrOrImagePage = Boolean(
+        page.image_path || page.image_url || (page.ocr_blocks && page.ocr_blocks.length > 0)
+      );
       const match = SourceMatcher.matchOnPage(page, field.value, field.source_text);
+      const finalBox = hasOcrOrImagePage ? match.matchedOcrBox || normalizedBox : null;
 
       // Never treat AI-proposed coordinates as verified automatically!
       let status: VerificationStatus = "NEEDS_REVIEW";
@@ -42,33 +42,30 @@ export const EvidenceValidator = {
       if (field.value === null || field.value === "") {
         status = field.source_text ? "NEEDS_REVIEW" : "NOT_FOUND";
         notes.push("Empty or missing value.");
-      } else if (!hasImagePage && match.matched) {
+      } else if (!hasOcrOrImagePage && match.matched) {
         status = match.ambiguous ? "NEEDS_REVIEW" : "VERIFIED";
         notes.push(
           match.ambiguous
             ? `Matched ${match.matchCount} occurrences in structural text; review recommended.`
             : "Verified against document structural reference."
         );
-      } else if (hasImagePage) {
+      } else if (hasOcrOrImagePage) {
         if (!field.source_text) {
           status = "NEEDS_REVIEW";
           notes.push("Missing source_text quote from document.");
         } else if (!finalBox) {
           status = "NEEDS_REVIEW";
-          notes.push("Model-proposed bounding box missing or invalid; visual review required.");
-        } else if (page.text_content && match.matched) {
+          notes.push("Bounding box missing or invalid; visual review required.");
+        } else if (match.matched) {
           status = match.ambiguous ? "NEEDS_REVIEW" : "VERIFIED";
-          notes.push("Source text matched and normalized bounding box present.");
+          notes.push("Verified against OCR/parsed text layer with normalized bounding box.");
         } else {
-          // Multimodal image-only page: model proposed coordinates & source_text, needs human/visual check
           status = "NEEDS_REVIEW";
-          notes.push(
-            "Model-proposed coordinates & source text (not yet visually verified against independent OCR)."
-          );
+          notes.push("Proposed coordinates & source text (needs visual review).");
         }
       } else {
         status = "NOT_FOUND";
-        notes.push("Value not found in page structural text.");
+        notes.push("Value not found in parsed document text.");
       }
 
       return {

@@ -18,7 +18,7 @@ import {
   Eye,
   FileSpreadsheet,
 } from "lucide-react";
-import { cn, formatDuration } from "@/lib/utils";
+import { cn, formatDuration, mergePageImagesFromClient, stripPageImagesForApi } from "@/lib/utils";
 import { UploadDropzone } from "./UploadDropzone";
 import type { DocumentRecord, ExtractedField } from "@/types/kashfara";
 
@@ -94,11 +94,11 @@ export function DocumentWorkspaceView({
       const res = await fetch("/api/documents/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ document: doc }),
+        body: JSON.stringify({ document: stripPageImagesForApi(doc) }),
       });
       const json = await parseApiResponse(res);
       if (!res.ok) throw new Error(json.error || "Processing failed.");
-      onDocumentUpdated(json.document);
+      onDocumentUpdated(mergePageImagesFromClient(json.document, doc));
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Processing failed.");
     } finally {
@@ -114,11 +114,11 @@ export function DocumentWorkspaceView({
       const res = await fetch(`/api/documents/${doc.id}/digitalize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ document: doc }),
+        body: JSON.stringify({ document: stripPageImagesForApi(doc) }),
       });
       const json = await parseApiResponse(res);
       if (!res.ok) throw new Error(json.error || "Digitalisation failed.");
-      onDocumentUpdated(json.document);
+      onDocumentUpdated(mergePageImagesFromClient(json.document, doc));
       onOpenDigitalForms();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Digitalisation failed.");
@@ -135,7 +135,7 @@ export function DocumentWorkspaceView({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          document: doc,
+          document: stripPageImagesForApi(doc),
           field_id: field.field_id,
           verification_status: "VERIFIED",
           visually_verified: true,
@@ -143,7 +143,7 @@ export function DocumentWorkspaceView({
       });
       const json = await parseApiResponse(res);
       if (res.ok && json.document) {
-        onDocumentUpdated(json.document);
+        onDocumentUpdated(mergePageImagesFromClient(json.document, doc));
       }
     } finally {
       setBusyAction(null);

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { InferenceOrchestrator } from "@/services/ai/inference-orchestrator";
-import { getPageImageForVision } from "./page-image";
+import { formatPagesForReasoning } from "./page-formatter";
 import type {
   DigitalFormField,
   DigitalFormSchema,
@@ -42,11 +42,7 @@ export const FormDigitalizer = {
     output_tokens: number;
     latency_ms: number;
   }> {
-    const images: Array<{ base64: string; mimeType: string }> = [];
-    for (const page of doc.pages.slice(0, 4)) {
-      const img = await getPageImageForVision(page);
-      if (img) images.push(img);
-    }
+    const parsedPagesText = formatPagesForReasoning(doc.pages.slice(0, 6));
 
     const existingFieldsSummary = doc.fields
       .map(
@@ -90,12 +86,11 @@ Return ONLY valid JSON:
       task: "form_detection",
       documentId: doc.id,
       systemPrompt,
-      userPrompt: `Digitalize this form (${doc.filename}).\nPreviously extracted fields:\n${existingFieldsSummary || "None yet"}`,
-      images,
+      userPrompt: `Digitalize this form (${doc.filename}) using the parsed OCR text and extracted fields.\n\nParsed Document Content:\n${parsedPagesText}\n\nPreviously extracted fields:\n${existingFieldsSummary || "None yet"}`,
       requiresArabic: doc.classification?.is_rtl,
       expectJson: true,
       maxTokens: 16384,
-      pagesCount: images.length || doc.page_count,
+      pagesCount: doc.page_count,
     });
 
     const rawSections = res.parsed?.sections || [];

@@ -1,10 +1,11 @@
-import type { DocumentPage } from "@/types/kashfara";
+import type { BoundingBox, DocumentPage } from "@/types/kashfara";
 
 export interface SourceMatchResult {
   matched: boolean;
   ambiguous: boolean;
   matchCount: number;
   matchedStructuralRef?: string;
+  matchedOcrBox?: BoundingBox;
 }
 
 function normalizeForMatch(s: string): string {
@@ -26,15 +27,11 @@ export const SourceMatcher = {
     }
 
     const haystack = normalizeForMatch(page.text_content || "");
-    if (!haystack) {
-      return { matched: false, ambiguous: false, matchCount: 0 };
-    }
-
     const needleSource = sourceText ? normalizeForMatch(sourceText) : "";
     const needleVal = value != null ? normalizeForMatch(String(value)) : "";
 
     let count = 0;
-    if (needleSource && needleSource.length >= 2) {
+    if (haystack && needleSource && needleSource.length >= 2) {
       let idx = haystack.indexOf(needleSource);
       while (idx !== -1) {
         count++;
@@ -42,7 +39,7 @@ export const SourceMatcher = {
       }
     }
 
-    if (count === 0 && needleVal && needleVal.length >= 2) {
+    if (haystack && count === 0 && needleVal && needleVal.length >= 2) {
       let idx = haystack.indexOf(needleVal);
       while (idx !== -1) {
         count++;
@@ -59,11 +56,34 @@ export const SourceMatcher = {
       matchedRef = found?.ref;
     }
 
+    let matchedOcrBox: BoundingBox | undefined;
+    if (page.ocr_blocks && page.ocr_blocks.length > 0 && (needleVal || needleSource)) {
+      const targetVal = needleVal && needleVal.length >= 2 ? needleVal : "";
+      const targetSrc = needleSource && needleSource.length >= 2 ? needleSource : "";
+      const blockMatch =
+        (targetVal &&
+          page.ocr_blocks.find((b) => {
+            const bt = normalizeForMatch(b.text);
+            return bt.includes(targetVal) || (bt.length >= 3 && targetVal.includes(bt));
+          })) ||
+        (targetSrc &&
+          page.ocr_blocks.find((b) => {
+            const bt = normalizeForMatch(b.text);
+            return bt.includes(targetSrc) || (bt.length >= 3 && targetSrc.includes(bt));
+          }));
+
+      if (blockMatch) {
+        matchedOcrBox = blockMatch.bbox;
+        if (count === 0) count = 1;
+      }
+    }
+
     return {
       matched: count > 0,
       ambiguous: count > 1,
       matchCount: count,
       matchedStructuralRef: matchedRef,
+      matchedOcrBox,
     };
   },
 };

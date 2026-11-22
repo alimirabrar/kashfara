@@ -1,5 +1,5 @@
 import { InferenceOrchestrator } from "@/services/ai/inference-orchestrator";
-import { getPageImageForVision } from "./page-image";
+import { formatPagesForReasoning } from "./page-formatter";
 import type {
   DocumentClassification,
   DocumentRecord,
@@ -70,77 +70,49 @@ export const DocumentAnalyzer = {
     let totalOut = 0;
     let totalLatency = 0;
     let lastProvider = "Kashfara Vision";
-    let lastModel = "Kashfara Multimodal Core";
+    let lastModel = "Kashfara Reasoning Core";
 
-    // Check if filename or any structural text has Arabic characters
     const hasArabicHint = /[\u0600-\u06FF]/.test(
       doc.filename + " " + doc.pages.map((p) => p.text_content || "").join(" ")
     );
 
-    const batchSize = 2;
+    const batchSize = 3;
     const batchStarts: number[] = [];
     for (let i = 0; i < doc.pages.length; i += batchSize) batchStarts.push(i);
 
-    // Run all page batches in parallel for speed
-    const batchResults = await Promise.all(batchStarts.map(async (i) => {
-      const batch = doc.pages.slice(i, i + batchSize);
-      const images: Array<{ base64: string; mimeType: string }> = [];
+    const batchResults = await Promise.all(
+      batchStarts.map(async (i) => {
+        const batch = doc.pages.slice(i, i + batchSize);
+        const pageRangeLabel =
+          batch.length === 1
+            ? `Page ${batch[0].page_number}`
+            : `Pages ${batch[0].page_number}-${batch[batch.length - 1].page_number}`;
 
-      for (const page of batch) {
-        const img = await getPageImageForVision(page);
-        if (img) images.push(img);
-      }
+        const parsedText = formatPagesForReasoning(batch);
+        const isFirstBatch = i === 0;
 
-      const pageRangeLabel =
-        batch.length === 1
-          ? `Page ${batch[0].page_number}`
-          : `Pages ${batch[0].page_number}-${batch[batch.length - 1].page_number}`;
-
-      const structuralContext =
-        images.length === 0
-          ? batch
-              .map(
-                (p) =>
-                  `=== Page ${p.page_number} ===\n${
-                    p.structural_blocks
-                      ? p.structural_blocks.map((b) => `[${b.ref}] ${b.text}`).join("\n")
-                      : p.text_content || ""
-                  }`
-              )
-              .join("\n\n")
-          : `Filename: ${doc.filename} (${doc.page_count} total pages). Analyzing ${pageRangeLabel}.${
-              batch.some((p) => p.text_content)
-                ? "\n\nPre-parsed OCR/Text Layer:\n" +
-                  batch
-                    .filter((p) => p.text_content)
-                    .map((p) => `[Page ${p.page_number}]: ${(p.text_content || "").slice(0, 2000)}`)
-                    .join("\n")
-                : ""
-            }`;
-
-      const isFirstBatch = i === 0;
-      const systemPrompt = `You are KASHFARA VISION, an enterprise multimodal document intelligence engine.
-You MUST accurately understand:
-- English, Arabic (RTL), and bilingual Arabic-English documents (preserve original Arabic script faithfully; never transliterate or drop Arabic text).
-- BOTH structured documents (invoices, IDs, passports, forms, tax certificates, bank statements) AND unstructured documents (contracts, letters, memos, inspection reports, narratives, handwritten notes, stamps, signatures).
-- For unstructured documents, extract key sections, clauses, parties, obligations, dates, reference numbers, stamps, signatures, and summary points as fields.
-- Never invent fields that do not exist in the document. Empty/blank form fields must have value: null.
+        const systemPrompt = `You are KASHFARA VISION's Document Reasoning Engine.
+You are given pre-parsed OCR lines with normalized [x,y,width,height] bounding boxes (or Office structural blocks) extracted from the document.
+Your job is to reason over this parsed OCR/structural data and return structured intelligence:
+- Accurately understand English, Arabic (RTL), and bilingual Arabic-English text (preserve original Arabic script faithfully).
+- Handle BOTH structured documents (invoices, receipts, licenses, forms, statements) AND unstructured documents (contracts, letters, memos, reports).
+- Never invent fields that are not present in the parsed text. Empty/blank form fields must have value: null.
 
 For every extracted field:
-- "label": Exact label or section heading as written (keep Arabic or English as printed).
+- "label": Exact label or section heading as written.
 - "normalized_key": English snake_case key.
 - "value": Extracted value (or null if blank).
-- "raw_value": Verbatim string from document.
+- "raw_value": Verbatim string from the parsed text.
 - "page_number": Exact 1-based page number.
-- "source_text": Exact verbatim quote from the document supporting this field.
-- "bounding_box": Normalized { "x": 0..1, "y": 0..1, "width": 0..1, "height": 0..1 } relative to page dimensions (or null for text-only Office docs).
+- "source_text": Exact verbatim quote from the parsed text.
+- "bounding_box": Copy the normalized { "x", "y", "width", "height" } from the matching [box=x,y,w,h] tag if present, else null.
 
 Return ONLY valid JSON:
 {${
-        isFirstBatch
-          ? `
+          isFirstBatch
+            ? `
   "classification": {
-    "document_type": "e.g. Tax Invoice | Commercial Invoice | Contract | Government Certificate | Application Form | Letter | Report | Other",
+    "document_type": "e.g. Tax Invoice | Commercial Invoice | Contract | Commercial Lease | Application Form | Report | Letter | Other",
     "subtype": "string or null",
     "language": "e.g. Arabic | English | Arabic-English",
     "is_rtl": boolean,
@@ -152,8 +124,8 @@ Return ONLY valid JSON:
     "confidence": 0.95,
     "summary": "1-2 sentence factual summary"
   },`
-          : ""
-      }
+            : ""
+        }
   "fields": [
     {
       "label": "string",
@@ -174,24 +146,25 @@ Return ONLY valid JSON:
       "page_number": 1,
       "headers": ["col1", "col2"],
       "rows": [["val1", "val2"]],
-      "bounding_box": { "x": 0.05, "y": 0.4, "width": 0.9, "height": 0.3 }
+      "bounding_box": null
     }
   ]
 }`;
 
-      const res = await InferenceOrchestrator.runTask<RawCombinedPayload>({
-        task: hasArabicHint ? "arabic_english_understanding" : "key_value_extraction",
-        documentId: doc.id,
-        systemPrompt,
-        userPrompt: `Analyze ${pageRangeLabel} of this document and return structured JSON.\n${structuralContext}`,
-        images,
-        requiresArabic: hasArabicHint,
-        expectJson: true,
-        maxTokens: 16384,
-        pagesCount: batch.length,
-      });
-      return { i, batch, res };
-    }));
+        const res = await InferenceOrchestrator.runTask<RawCombinedPayload>({
+          task: hasArabicHint ? "arabic_english_understanding" : "key_value_extraction",
+          documentId: doc.id,
+          systemPrompt,
+          userPrompt: `Reason over the parsed OCR/structural output for ${doc.filename} (${pageRangeLabel}) and extract all fields, tables, and classification:\n\n${parsedText}`,
+          requiresArabic: hasArabicHint,
+          expectJson: true,
+          maxTokens: 16384,
+          pagesCount: batch.length,
+        });
+
+        return { i, batch, res };
+      })
+    );
 
     for (const { i, batch, res } of batchResults) {
       const isFirstBatch = i === 0;
