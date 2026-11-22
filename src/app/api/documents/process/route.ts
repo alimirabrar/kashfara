@@ -27,8 +27,9 @@ export async function POST(req: Request) {
 
     const analysis = await DocumentAnalyzer.classifyAndExtract(doc);
     doc.classification = analysis.classification;
+    doc.intelligence = analysis.intelligence;
     doc.processing_logs.push({
-      step: "Multimodal Classification & Extraction",
+      step: "AI Classification, Template & Extraction",
       task: "key_value_extraction",
       status: "completed",
       provider: analysis.provider,
@@ -40,7 +41,8 @@ export async function POST(req: Request) {
     });
 
     const verifyStart = Date.now();
-    doc.fields = EvidenceValidator.validateFields(analysis.fields, doc.pages);
+    const validatedFields = EvidenceValidator.validateFields(analysis.fields, doc.pages);
+    doc.fields = validatedFields.length > 0 ? validatedFields : doc.fields;
     doc.tables = EvidenceValidator.validateTables(analysis.tables, doc.pages);
     doc.processing_logs.push({
       step: "Evidence Verification",
@@ -59,16 +61,19 @@ export async function POST(req: Request) {
     return NextResponse.json({
       job_id: jobId,
       document: doc,
+      diagnostics: analysis.diagnostics,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Processing failed.";
     const reasons = err instanceof NoEligibleProviderError ? err.reasons : undefined;
+    const diagnostics = err instanceof NoEligibleProviderError ? err.diagnostics : undefined;
 
     return NextResponse.json(
       {
         job_id: jobId,
         error: message,
         reasons,
+        diagnostics,
       },
       { status: err instanceof NoEligibleProviderError ? 503 : 500 }
     );

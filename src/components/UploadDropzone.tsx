@@ -5,8 +5,9 @@ import { parseApiResponse } from "@/lib/api-response";
 import { UploadCloud, Loader2, AlertTriangle, FileCheck2 } from "lucide-react";
 import { renderPdfPagesToPngFiles } from "@/lib/pdf-client";
 import { runOcrOnPageImage } from "@/lib/ocr-client";
+import { extractInstantFields } from "@/lib/instant-extractor";
 import { mergePageImagesFromClient, stripPageImagesForApi } from "@/lib/utils";
-import type { DocumentRecord } from "@/types/kashfara";
+import type { DocumentRecord, PipelineStep } from "@/types/kashfara";
 
 interface UploadDropzoneProps {
   maxPages?: number;
@@ -29,12 +30,16 @@ export function UploadDropzone({
   async function handleFile(file: File) {
     setError(null);
     setBusy(true);
+    const pipeline: PipelineStep[] = [];
+
     try {
       const formData = new FormData();
       formData.append("file", file);
 
+      // Step 1: PDF / File Preparation
+      const t0 = Date.now();
       if (file.name.toLowerCase().endsWith(".pdf")) {
-        setStageText("Parsing & rendering PDF pages for Kashfara Vision...");
+        setStageText("Parsing PDF text layer & rendering pages...");
         const rendered = await renderPdfPagesToPngFiles(file, maxPages);
         if (rendered.totalPages > maxPages) {
           throw new Error(
@@ -48,28 +53,72 @@ export function UploadDropzone({
         formData.append("page_ocr_blocks", JSON.stringify(rendered.pageOcrBlocks));
       }
 
-      setStageText("Validating & preparing document...");
+      setStageText("Validating & uploading document...");
       const upRes = await fetch("/api/upload", { method: "POST", body: formData });
       const upJson = await parseApiResponse(upRes);
       if (!upRes.ok) {
         throw new Error(upJson.error || "Document upload failed.");
       }
 
+      pipeline.push({
+        id: "upload",
+        label: "Upload & Format Validation",
+        status: "done",
+        started_at: t0,
+        duration_ms: Date.now() - t0,
+      });
+
       const clientDoc = upJson.document as DocumentRecord;
 
-      // Run Arabic + English OCR on any image or scanned PDF page that lacks native text
+      // Step 2: OCR on image / scanned pages lacking native text
+      const tOcr = Date.now();
+      let ranOcr = false;
       for (let i = 0; i < clientDoc.pages.length; i++) {
         const page = clientDoc.pages[i];
         const hasEnoughText = Boolean(page.text_content && page.text_content.trim().length >= 25);
         if (page.image_url && !hasEnoughText) {
+          ranOcr = true;
           setStageText(`Running Arabic & English OCR (Page ${page.page_number}/${clientDoc.pages.length})...`);
           const ocr = await runOcrOnPageImage(page.image_url, page.width, page.height);
           page.text_content = ocr.text_content;
           page.ocr_blocks = ocr.ocr_blocks;
         }
       }
+      pipeline.push({
+        id: "ocr",
+        label: ranOcr ? "Arabic & English OCR (Tesseract)" : "Native Structural / PDF Text Parser",
+        status: "done",
+        started_at: tOcr,
+        duration_ms: Date.now() - tOcr,
+        detail: `${clientDoc.pages.reduce((s, p) => s + (p.text_content?.length || 0), 0)} chars extracted`,
+      });
 
-      setStageText("Reasoning over parsed OCR & layout...");
+      // Step 3: Instant local proof-of-evidence field marking (<20ms)
+      const tInst = Date.now();
+      const instantFields = extractInstantFields(clientDoc);
+      clientDoc.fields = instantFields;
+      pipeline.push({
+        id: "instant",
+        label: "Instant Field & Evidence Marking",
+        status: "done",
+        started_at: tInst,
+        duration_ms: Date.now() - tInst,
+        detail: `${instantFields.length} fields marked`,
+      });
+
+      // Immediately show instant OCR + proof-of-evidence in Workspace!
+      const aiStep: PipelineStep = {
+        id: "ai",
+        label: "Kashfara AI Classification, Translation & Template",
+        status: "running",
+        started_at: Date.now(),
+      };
+      clientDoc.pipeline = [...pipeline, aiStep];
+      onUploadedAndProcessed({ ...clientDoc });
+
+      // Step 4: Server-side Gemini reasoning over parsed OCR text (zero images sent)
+      setStageText("Running AI classification, translation & template extraction...");
+      const tAi = Date.now();
       const procRes = await fetch("/api/documents/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -80,12 +129,29 @@ export function UploadDropzone({
       if (!procRes.ok) {
         const reasons: string[] = Array.isArray(procJson.reasons) ? procJson.reasons : [];
         const detail = reasons.length ? ` — ${reasons[reasons.length - 1]}` : "";
-        const message = (procJson.error || "Processing failed.") + detail;
-        onUploadedAndProcessed({ ...clientDoc, status: "failed", error_message: message });
-        throw new Error(message);
+        const message = (procJson.error || "AI reasoning failed.") + detail;
+        aiStep.status = "failed";
+        aiStep.duration_ms = Date.now() - tAi;
+        aiStep.error = message;
+        onUploadedAndProcessed({
+          ...clientDoc,
+          status: "completed", // keep instant OCR + fields usable!
+          error_message: `Instant OCR & evidence succeeded, but AI reasoning failed: ${message}`,
+          pipeline: [...pipeline, aiStep],
+        });
+        setError(message);
+        return;
       }
 
-      onUploadedAndProcessed(mergePageImagesFromClient(procJson.document, clientDoc));
+      aiStep.status = "done";
+      aiStep.duration_ms = Date.now() - tAi;
+      aiStep.detail = procJson.diagnostics?.model
+        ? `Model: ${procJson.diagnostics.model}`
+        : undefined;
+
+      const merged = mergePageImagesFromClient(procJson.document, clientDoc);
+      merged.pipeline = [...pipeline, aiStep];
+      onUploadedAndProcessed(merged);
       setStageText("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload or processing failed.");
@@ -124,7 +190,7 @@ export function UploadDropzone({
             <Loader2 className="w-8 h-8 text-black animate-spin mb-3" />
             <div className="text-sm font-semibold text-black">{stageText}</div>
             <div className="text-xs font-mono text-[#6E6E73] mt-1">
-              Hybrid OCR + Vision Pipeline Active
+              Fast OCR + Parser → Kashfara Reasoning
             </div>
           </>
         ) : (
@@ -140,7 +206,7 @@ export function UploadDropzone({
             </div>
             <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F5F5F7] text-[11px] font-mono text-[#1D1D1F]">
               <FileCheck2 className="w-3.5 h-3.5" />
-              <span>Instant proof-of-evidence extraction</span>
+              <span>Instant OCR + 5 Smart Templates + Proof of Evidence</span>
             </div>
           </>
         )}

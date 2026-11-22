@@ -2,9 +2,12 @@ import { InferenceOrchestrator } from "@/services/ai/inference-orchestrator";
 import { formatPagesForReasoning } from "./page-formatter";
 import type {
   DocumentClassification,
+  DocumentIntelligence,
   DocumentRecord,
+  EngineDiagnostics,
   ExtractedField,
   ExtractedTable,
+  TemplateKind,
 } from "@/types/kashfara";
 
 interface RawCombinedPayload {
@@ -21,6 +24,11 @@ interface RawCombinedPayload {
     confidence?: number | null;
     summary?: string;
   };
+  template?: TemplateKind;
+  template_confidence?: number | null;
+  template_data?: Record<string, unknown> | null;
+  english_translation?: string | null;
+  key_points?: string[];
   fields?: Array<{
     label?: string;
     normalized_key?: string;
@@ -30,7 +38,6 @@ interface RawCombinedPayload {
     page_number?: number;
     source_text?: string | null;
     structural_ref?: string | null;
-    bounding_box?: { x?: number; y?: number; width?: number; height?: number } | null;
     confidence?: number | null;
   }>;
   tables?: Array<{
@@ -38,7 +45,6 @@ interface RawCombinedPayload {
     page_number?: number;
     headers?: string[];
     rows?: string[][];
-    bounding_box?: { x?: number; y?: number; width?: number; height?: number } | null;
   }>;
 }
 
@@ -52,9 +58,19 @@ const VALID_DATA_TYPES = new Set([
   "unknown",
 ]);
 
+const VALID_TEMPLATES = new Set<TemplateKind>([
+  "resume",
+  "invoice",
+  "bank_statement",
+  "contract",
+  "receipt",
+  "generic",
+]);
+
 export const DocumentAnalyzer = {
   async classifyAndExtract(doc: DocumentRecord): Promise<{
     classification: DocumentClassification;
+    intelligence: DocumentIntelligence;
     fields: ExtractedField[];
     tables: ExtractedTable[];
     provider: string;
@@ -62,59 +78,37 @@ export const DocumentAnalyzer = {
     input_tokens: number;
     output_tokens: number;
     latency_ms: number;
+    diagnostics: EngineDiagnostics;
   }> {
-    const allFields: ExtractedField[] = [];
-    const allTables: ExtractedTable[] = [];
-    let classification: DocumentClassification | null = null;
-    let totalIn = 0;
-    let totalOut = 0;
-    let totalLatency = 0;
-    let lastProvider = "Kashfara Vision";
-    let lastModel = "Kashfara Reasoning Core";
+    const parsedText = formatPagesForReasoning(doc.pages.slice(0, 8));
+    const hasArabicHint = /[\u0600-\u06FF]/.test(doc.filename + " " + parsedText);
 
-    const hasArabicHint = /[\u0600-\u06FF]/.test(
-      doc.filename + " " + doc.pages.map((p) => p.text_content || "").join(" ")
-    );
-
-    const batchSize = 3;
-    const batchStarts: number[] = [];
-    for (let i = 0; i < doc.pages.length; i += batchSize) batchStarts.push(i);
-
-    const batchResults = await Promise.all(
-      batchStarts.map(async (i) => {
-        const batch = doc.pages.slice(i, i + batchSize);
-        const pageRangeLabel =
-          batch.length === 1
-            ? `Page ${batch[0].page_number}`
-            : `Pages ${batch[0].page_number}-${batch[batch.length - 1].page_number}`;
-
-        const parsedText = formatPagesForReasoning(batch);
-        const isFirstBatch = i === 0;
-
-        const systemPrompt = `You are KASHFARA VISION's Document Reasoning Engine.
-You are given pre-parsed OCR lines with normalized [x,y,width,height] bounding boxes (or Office structural blocks) extracted from the document.
-Your job is to reason over this parsed OCR/structural data and return structured intelligence:
-- Accurately understand English, Arabic (RTL), and bilingual Arabic-English text (preserve original Arabic script faithfully).
-- Handle BOTH structured documents (invoices, receipts, licenses, forms, statements) AND unstructured documents (contracts, letters, memos, reports).
-- Never invent fields that are not present in the parsed text. Empty/blank form fields must have value: null.
-
-For every extracted field:
-- "label": Exact label or section heading as written.
-- "normalized_key": English snake_case key.
-- "value": Extracted value (or null if blank).
-- "raw_value": Verbatim string from the parsed text.
-- "page_number": Exact 1-based page number.
-- "source_text": Exact verbatim quote from the parsed text.
-- "bounding_box": Copy the normalized { "x", "y", "width", "height" } from the matching [box=x,y,w,h] tag if present, else null.
+    const systemPrompt = `You are KASHFARA VISION's Document Reasoning Engine.
+You are given pre-parsed OCR / structural text extracted from a document (up to ${doc.page_count} pages).
+Perform:
+1. Accurate classification (document_type, language, is_rtl, is_form, has_tables, has_signatures, has_stamps, has_handwriting, summary).
+2. Template detection — choose ONE of:
+   - "resume": CV / Resume. Populate template_data with:
+     { "full_name", "email", "phone", "location", "headline", "summary", "years_of_experience", "skills": string[], "experience": [{"role","company","period","highlights"}], "education": [{"degree","institution","year"}], "certifications": string[], "languages": string[] }
+   - "invoice": Tax or Commercial Invoice. Populate template_data with:
+     { "invoice_number", "issue_date", "due_date", "vendor_name", "vendor_trn", "customer_name", "currency", "subtotal", "vat_tax", "total_amount", "payment_terms", "line_items": [{"description","qty","unit_price","total"}] }
+   - "bank_statement": Bank or Financial Statement. Populate template_data with:
+     { "bank_name", "account_holder", "account_number", "iban", "statement_period", "currency", "opening_balance", "closing_balance", "total_credits", "total_debits", "transactions": [{"date","description","debit","credit","balance"}] }
+   - "contract": Legal / Commercial / Employment Contract. Populate template_data with:
+     { "contract_title", "contract_number", "effective_date", "expiry_date", "party_a", "party_b", "contract_value", "governing_law", "key_obligations": string[], "termination_terms" }
+   - "receipt": Payment Receipt / Purchase Order / Expense Voucher. Populate template_data with:
+     { "receipt_number", "date", "merchant_name", "payer", "payment_method", "currency", "subtotal", "tax", "total_paid", "items": [{"name","qty","amount"}] }
+   - "generic": If none of the 5 templates fit. Populate template_data with null.
+3. If the document is Arabic or non-English, provide a concise, faithful "english_translation" summarizing the full document content in English (otherwise null), plus 3-6 "key_points".
+4. Extract key-value "fields" (with exact verbatim "source_text" from the parsed text so coordinates can be matched) and "tables".
+Never invent values not present in the text.
 
 Return ONLY valid JSON:
-{${
-          isFirstBatch
-            ? `
+{
   "classification": {
-    "document_type": "e.g. Tax Invoice | Commercial Invoice | Contract | Commercial Lease | Application Form | Report | Letter | Other",
-    "subtype": "string or null",
-    "language": "e.g. Arabic | English | Arabic-English",
+    "document_type": "string",
+    "subtype": "string | null",
+    "language": "string",
     "is_rtl": boolean,
     "is_form": boolean,
     "has_tables": boolean,
@@ -122,10 +116,13 @@ Return ONLY valid JSON:
     "has_stamps": boolean,
     "has_handwriting": boolean,
     "confidence": 0.95,
-    "summary": "1-2 sentence factual summary"
-  },`
-            : ""
-        }
+    "summary": "string"
+  },
+  "template": "resume | invoice | bank_statement | contract | receipt | generic",
+  "template_confidence": 0.95,
+  "template_data": {},
+  "english_translation": "string | null",
+  "key_points": ["string"],
   "fields": [
     {
       "label": "string",
@@ -136,7 +133,6 @@ Return ONLY valid JSON:
       "page_number": 1,
       "source_text": "string",
       "structural_ref": "string | null",
-      "bounding_box": { "x": 0.1, "y": 0.2, "width": 0.2, "height": 0.04 },
       "confidence": 0.95
     }
   ],
@@ -144,140 +140,104 @@ Return ONLY valid JSON:
     {
       "title": "string | null",
       "page_number": 1,
-      "headers": ["col1", "col2"],
-      "rows": [["val1", "val2"]],
-      "bounding_box": null
+      "headers": ["col1"],
+      "rows": [["val1"]]
     }
   ]
 }`;
 
-        const res = await InferenceOrchestrator.runTask<RawCombinedPayload>({
-          task: hasArabicHint ? "arabic_english_understanding" : "key_value_extraction",
-          documentId: doc.id,
-          systemPrompt,
-          userPrompt: `Reason over the parsed OCR/structural output for ${doc.filename} (${pageRangeLabel}) and extract all fields, tables, and classification:\n\n${parsedText}`,
-          requiresArabic: hasArabicHint,
-          expectJson: true,
-          maxTokens: 16384,
-          pagesCount: batch.length,
-        });
+    // Single fast reasoning call over the entire parsed text (keeps total latency ~2-5s!)
+    const res = await InferenceOrchestrator.runTask<RawCombinedPayload>({
+      task: hasArabicHint ? "arabic_english_understanding" : "key_value_extraction",
+      documentId: doc.id,
+      systemPrompt,
+      userPrompt: `Document: ${doc.filename} (${doc.page_count} pages)\n\n${parsedText}`,
+      requiresArabic: hasArabicHint,
+      expectJson: true,
+      maxTokens: 6000,
+      pagesCount: doc.page_count,
+    });
 
-        return { i, batch, res };
-      })
-    );
+    const p = res.parsed || {};
+    const c = p.classification || {};
+    const classification: DocumentClassification = {
+      document_type: c.document_type || "Document",
+      subtype: c.subtype ?? null,
+      language: c.language || (hasArabicHint ? "Arabic" : "Unknown"),
+      is_rtl: Boolean(c.is_rtl ?? hasArabicHint),
+      page_count: doc.page_count,
+      is_form: Boolean(c.is_form),
+      has_tables: Boolean(c.has_tables),
+      has_signatures: Boolean(c.has_signatures),
+      has_stamps: Boolean(c.has_stamps),
+      has_handwriting: Boolean(c.has_handwriting),
+      confidence: typeof c.confidence === "number" ? c.confidence : null,
+      summary: c.summary || "Document analysis completed.",
+      provider_used: res.provider,
+      model_used: res.model,
+    };
 
-    for (const { i, batch, res } of batchResults) {
-      const isFirstBatch = i === 0;
-      totalIn += res.input_tokens;
-      totalOut += res.output_tokens;
-      totalLatency += res.latency_ms;
-      lastProvider = res.provider;
-      lastModel = res.model;
+    const template: TemplateKind =
+      p.template && VALID_TEMPLATES.has(p.template) ? p.template : "generic";
 
-      if (isFirstBatch && res.parsed?.classification) {
-        const c = res.parsed.classification;
-        classification = {
-          document_type: c.document_type || "Document",
-          subtype: c.subtype ?? null,
-          language: c.language || "Unknown",
-          is_rtl: Boolean(c.is_rtl),
-          page_count: doc.page_count,
-          is_form: Boolean(c.is_form),
-          has_tables: Boolean(c.has_tables),
-          has_signatures: Boolean(c.has_signatures),
-          has_stamps: Boolean(c.has_stamps),
-          has_handwriting: Boolean(c.has_handwriting),
-          confidence: typeof c.confidence === "number" ? c.confidence : null,
-          summary: c.summary || "Analysis completed.",
-          provider_used: res.provider,
-          model_used: res.model,
-        };
-      }
+    const intelligence: DocumentIntelligence = {
+      template,
+      template_confidence:
+        typeof p.template_confidence === "number" ? p.template_confidence : null,
+      data: p.template_data && typeof p.template_data === "object" ? p.template_data : null,
+      english_translation: p.english_translation ?? null,
+      key_points: Array.isArray(p.key_points) ? p.key_points.map(String) : [],
+      ats: null,
+    };
 
-      for (const f of res.parsed?.fields || []) {
-        const idx = allFields.length + 1;
-        const dt = f.data_type && VALID_DATA_TYPES.has(f.data_type) ? f.data_type : "string";
-        allFields.push({
-          field_id: `field_${String(idx).padStart(3, "0")}`,
-          label: String(f.label || `Field ${idx}`),
-          normalized_key: String(
-            f.normalized_key ||
-              String(f.label || `field_${idx}`)
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, "_")
-                .replace(/^_|_$/g, "") ||
-              `field_${idx}`
-          ),
-          value: f.value ?? null,
-          raw_value: f.raw_value ?? (f.value != null ? String(f.value) : null),
-          data_type: dt as ExtractedField["data_type"],
-          page_number: Number(f.page_number) || batch[0].page_number,
-          source_text: f.source_text ?? null,
-          structural_ref: f.structural_ref ?? null,
-          bounding_box: f.bounding_box
-            ? {
-                x: Number(f.bounding_box.x ?? 0),
-                y: Number(f.bounding_box.y ?? 0),
-                width: Number(f.bounding_box.width ?? 0),
-                height: Number(f.bounding_box.height ?? 0),
-              }
-            : null,
-          coordinate_source: f.bounding_box ? "model_proposed" : "none",
-          confidence: typeof f.confidence === "number" ? f.confidence : null,
-          verification_status: "NEEDS_REVIEW",
-        });
-      }
-
-      for (const t of res.parsed?.tables || []) {
-        const idx = allTables.length + 1;
-        allTables.push({
-          table_id: `table_${String(idx).padStart(3, "0")}`,
-          title: t.title ?? null,
-          page_number: Number(t.page_number) || batch[0].page_number,
-          headers: Array.isArray(t.headers) ? t.headers.map(String) : [],
-          rows: Array.isArray(t.rows) ? t.rows.map((r) => (Array.isArray(r) ? r.map(String) : [])) : [],
-          bounding_box: t.bounding_box
-            ? {
-                x: Number(t.bounding_box.x ?? 0),
-                y: Number(t.bounding_box.y ?? 0),
-                width: Number(t.bounding_box.width ?? 0),
-                height: Number(t.bounding_box.height ?? 0),
-              }
-            : null,
-          coordinate_source: t.bounding_box ? "model_proposed" : "none",
-          verification_status: "NEEDS_REVIEW",
-        });
-      }
-    }
-
-    if (!classification) {
-      classification = {
-        document_type: "Document",
-        subtype: null,
-        language: hasArabicHint ? "Arabic" : "Unknown",
-        is_rtl: hasArabicHint,
-        page_count: doc.page_count,
-        is_form: false,
-        has_tables: allTables.length > 0,
-        has_signatures: false,
-        has_stamps: false,
-        has_handwriting: false,
-        confidence: null,
-        summary: "Document processed.",
-        provider_used: lastProvider,
-        model_used: lastModel,
+    const allFields: ExtractedField[] = (p.fields || []).map((f, idx) => {
+      const dt = f.data_type && VALID_DATA_TYPES.has(f.data_type) ? f.data_type : "string";
+      return {
+        field_id: `field_${String(idx + 1).padStart(3, "0")}`,
+        label: String(f.label || `Field ${idx + 1}`),
+        normalized_key: String(
+          f.normalized_key ||
+            String(f.label || `field_${idx + 1}`)
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "_")
+              .replace(/^_|_$/g, "") ||
+            `field_${idx + 1}`
+        ),
+        value: f.value ?? null,
+        raw_value: f.raw_value ?? (f.value != null ? String(f.value) : null),
+        data_type: dt as ExtractedField["data_type"],
+        page_number: Number(f.page_number) || 1,
+        source_text: f.source_text ?? null,
+        structural_ref: f.structural_ref ?? null,
+        bounding_box: null,
+        coordinate_source: "none",
+        confidence: typeof f.confidence === "number" ? f.confidence : null,
+        verification_status: "NEEDS_REVIEW",
       };
-    }
+    });
+
+    const allTables: ExtractedTable[] = (p.tables || []).map((t, idx) => ({
+      table_id: `table_${String(idx + 1).padStart(3, "0")}`,
+      title: t.title ?? null,
+      page_number: Number(t.page_number) || 1,
+      headers: Array.isArray(t.headers) ? t.headers.map(String) : [],
+      rows: Array.isArray(t.rows) ? t.rows.map((r) => (Array.isArray(r) ? r.map(String) : [])) : [],
+      bounding_box: null,
+      coordinate_source: "none",
+      verification_status: "NEEDS_REVIEW",
+    }));
 
     return {
       classification,
+      intelligence,
       fields: allFields,
       tables: allTables,
-      provider: lastProvider,
-      model: lastModel,
-      input_tokens: totalIn,
-      output_tokens: totalOut,
-      latency_ms: totalLatency,
+      provider: res.provider,
+      model: res.model,
+      input_tokens: res.input_tokens,
+      output_tokens: res.output_tokens,
+      latency_ms: res.latency_ms,
+      diagnostics: res.diagnostics,
     };
   },
 };

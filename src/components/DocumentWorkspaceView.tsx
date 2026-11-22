@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn, formatDuration, mergePageImagesFromClient, stripPageImagesForApi } from "@/lib/utils";
 import { UploadDropzone } from "./UploadDropzone";
+import { TemplatePanels } from "./TemplatePanels";
 import type { DocumentRecord, ExtractedField } from "@/types/kashfara";
 
 interface DocumentWorkspaceViewProps {
@@ -39,7 +40,7 @@ export function DocumentWorkspaceView({
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const [rightTab, setRightTab] = useState<"fields" | "tables" | "logs">("fields");
+  const [rightTab, setRightTab] = useState<"template" | "fields" | "tables" | "logs">("template");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -214,7 +215,7 @@ export function DocumentWorkspaceView({
         </div>
       </div>
 
-      {(actionError || (doc.status === "failed" && doc.error_message)) && (
+      {(actionError || doc.error_message) && (
         <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 break-words">
           {actionError || doc.error_message}
         </div>
@@ -414,11 +415,23 @@ export function DocumentWorkspaceView({
         {/* Right: Data Extraction & Proofing */}
         <div className="lg:col-span-5 apple-card rounded-2xl flex flex-col min-h-[400px] lg:min-h-0 overflow-hidden">
           <div className="px-3.5 py-2.5 border-b border-black/8 bg-white flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 overflow-x-auto">
+              <button
+                onClick={() => setRightTab("template")}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 transition-colors shrink-0",
+                  rightTab === "template"
+                    ? "bg-black text-white"
+                    : "text-[#6E6E73] hover:text-black hover:bg-[#F5F5F7]"
+                )}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Template
+              </button>
               <button
                 onClick={() => setRightTab("fields")}
                 className={cn(
-                  "px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors",
+                  "px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 transition-colors shrink-0",
                   rightTab === "fields"
                     ? "bg-black text-white"
                     : "text-[#6E6E73] hover:text-black hover:bg-[#F5F5F7]"
@@ -430,7 +443,7 @@ export function DocumentWorkspaceView({
               <button
                 onClick={() => setRightTab("tables")}
                 className={cn(
-                  "px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors",
+                  "px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 transition-colors shrink-0",
                   rightTab === "tables"
                     ? "bg-black text-white"
                     : "text-[#6E6E73] hover:text-black hover:bg-[#F5F5F7]"
@@ -442,20 +455,26 @@ export function DocumentWorkspaceView({
               <button
                 onClick={() => setRightTab("logs")}
                 className={cn(
-                  "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+                  "px-2.5 py-1 rounded-full text-xs font-medium transition-colors shrink-0",
                   rightTab === "logs"
                     ? "bg-black text-white"
                     : "text-[#6E6E73] hover:text-black hover:bg-[#F5F5F7]"
                 )}
               >
-                Audit ({doc.processing_logs.length})
+                Logs
               </button>
             </div>
-            <div className="flex items-center gap-2 text-[11px] font-mono">
+            <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono">
               <span className="text-emerald-700">{verifiedCount}V</span>
               <span className="text-amber-700">{reviewCount}R</span>
             </div>
           </div>
+
+          {rightTab === "template" && (
+            <div className="flex-1 overflow-y-auto p-3 bg-[#F5F5F7]/50">
+              <TemplatePanels doc={doc} onDocumentUpdated={onDocumentUpdated} />
+            </div>
+          )}
 
           {rightTab === "fields" && (
             <>
@@ -621,6 +640,41 @@ export function DocumentWorkspaceView({
 
           {rightTab === "logs" && (
             <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#F5F5F7]/50">
+              {doc.pipeline && doc.pipeline.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <div className="text-[10px] font-mono uppercase text-[#6E6E73] px-1">
+                    Pipeline Execution Steps
+                  </div>
+                  {doc.pipeline.map((step) => (
+                    <div
+                      key={step.id}
+                      className="p-3 rounded-2xl bg-white border border-black/8 text-xs space-y-1"
+                    >
+                      <div className="flex items-center justify-between font-semibold text-black">
+                        <span>{step.label}</span>
+                        <span
+                          className={`font-mono text-[10px] px-2 py-0.5 rounded-full uppercase ${
+                            step.status === "done"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : step.status === "failed"
+                                ? "bg-red-50 text-red-700"
+                                : "bg-amber-50 text-amber-700"
+                          }`}
+                        >
+                          {step.status} · {step.duration_ms ? `${step.duration_ms}ms` : "running"}
+                        </span>
+                      </div>
+                      {step.detail && (
+                        <div className="text-[11px] font-mono text-[#6E6E73]">{step.detail}</div>
+                      )}
+                      {step.error && (
+                        <div className="text-[11px] text-red-700 break-words">{step.error}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {doc.processing_logs.map((log, idx) => (
                 <div
                   key={idx}

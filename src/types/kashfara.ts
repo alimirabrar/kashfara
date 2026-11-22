@@ -239,6 +239,56 @@ export interface DocumentRecord {
   qa_history: QAMessage[];
   processing_logs: ProcessingStepLog[];
   total_processing_ms?: number;
+  pipeline?: PipelineStep[];
+  intelligence?: DocumentIntelligence;
+}
+
+export type PipelineStepStatus = "running" | "done" | "failed" | "skipped";
+
+export interface PipelineStep {
+  id: string;
+  label: string;
+  status: PipelineStepStatus;
+  started_at: number;
+  duration_ms?: number;
+  detail?: string;
+  error?: string;
+}
+
+export type TemplateKind =
+  | "resume"
+  | "invoice"
+  | "bank_statement"
+  | "contract"
+  | "receipt"
+  | "generic";
+
+export interface AtsResult {
+  score: number;
+  verdict: string;
+  matched_skills: string[];
+  missing_skills: string[];
+  strengths: string[];
+  gaps: string[];
+  recommendations: string[];
+  breakdown?: Record<string, number>;
+}
+
+export interface EngineDiagnostics {
+  model: string | null;
+  total_ms: number;
+  input_chars: number;
+  attempts: Array<{ model: string; ms: number; ok: boolean; error?: string }>;
+}
+
+export interface DocumentIntelligence {
+  template: TemplateKind;
+  template_confidence?: number | null;
+  data: Record<string, unknown> | null;
+  english_translation?: string | null;
+  key_points?: string[];
+  ats?: AtsResult | null;
+  job_description?: string;
 }
 
 export interface ProcessingJob {
