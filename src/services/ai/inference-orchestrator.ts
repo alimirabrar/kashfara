@@ -5,7 +5,7 @@ import {
   type ChatContentPart,
   type ChatMessage,
 } from "./gemini-provider";
-import { GROQ_FALLBACK_MODELS, GroqFallback, sanitizeGroqLabel } from "./groq-fallback";
+import { GroqFallback, sanitizeGroqLabel } from "./groq-fallback";
 import { DailyUsageLedger } from "@/services/usage/daily-ledger";
 import type { EngineDiagnostics, TaskCategory } from "@/types/kashfara";
 
@@ -227,9 +227,10 @@ export const InferenceOrchestrator = {
       }
     }
 
-    // Immediate fallback to Groq production models if Gemini failed/timed out
+    // Immediate fallback to live Groq production models if Gemini failed/timed out
     if (GroqFallback.isConfigured()) {
-      for (const gModel of GROQ_FALLBACK_MODELS) {
+      const groqModels = await GroqFallback.getAvailableModels();
+      for (const gModel of groqModels) {
         const elapsedMs = Date.now() - startedAt;
         const remainingMs = TIME_BUDGET_MS - elapsedMs;
         if (remainingMs < 4_000) break;

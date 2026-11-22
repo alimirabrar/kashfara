@@ -3,18 +3,71 @@ import { ProviderRequestError, type ChatMessage, type InferenceResponse } from "
 
 export const GROQ_FALLBACK_MODELS = [
   "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant",
+  "meta-llama/llama-4-scout-17b-16e-instruct",
 ];
+
+let cachedGroqModels: { ids: string[]; at: number } | null = null;
+
+function rankGroqModel(id: string): number {
+  if (/llama-3\.3-70b-versatile/i.test(id)) return 500;
+  if (/llama-4-maverick/i.test(id)) return 450;
+  if (/llama-4-scout/i.test(id)) return 420;
+  if (/qwen/i.test(id)) return 380;
+  if (/70b/i.test(id)) return 350;
+  if (/8b|instant/i.test(id)) return 250;
+  return 150;
+}
 
 export function sanitizeGroqLabel(modelId: string): string {
   if (/70b/i.test(modelId)) return "kashfara-4b-turbo";
-  if (/120b/i.test(modelId)) return "kashfara-4b-reasoning";
-  return "kashfara-4b-instant";
+  if (/llama-4/i.test(modelId)) return "kashfara-4b-multimodal";
+  return "kashfara-4b-fast";
+}
+
+function sanitizeGroqError(text: string): string {
+  return text
+    .replace(/`?[a-z0-9_./-]*llama[a-z0-9_./-]*`?/gi, "kashfara-4b-turbo")
+    .replace(/groq/gi, "Kashfara");
 }
 
 export const GroqFallback = {
   isConfigured(): boolean {
     return Boolean(getConfig().groqApiKey);
+  },
+
+  async getAvailableModels(): Promise<string[]> {
+    if (cachedGroqModels && Date.now() - cachedGroqModels.at < 15 * 60_000) {
+      return cachedGroqModels.ids;
+    }
+    const cfg = getConfig();
+    if (!cfg.groqApiKey) return [];
+
+    try {
+      const res = await fetch(`${cfg.groqBaseUrl}/models`, {
+        headers: { Authorization: `Bearer ${cfg.groqApiKey}` },
+        signal: AbortSignal.timeout(6_000),
+      });
+      if (res.ok) {
+        const json = (await res.json()) as { data?: Array<{ id: string; active?: boolean }> };
+        const ids = (json.data || [])
+          .filter((m) => m.active !== false)
+          .map((m) => m.id)
+          .filter(
+            (id) =>
+              !/(whisper|tts|guard|safeguard|orpheus|embedding|compound)/i.test(id)
+          )
+          .sort((a, b) => rankGroqModel(b) - rankGroqModel(a))
+          .slice(0, 3);
+
+        if (ids.length > 0) {
+          cachedGroqModels = { ids, at: Date.now() };
+          return ids;
+        }
+      }
+    } catch {
+      // fall back to static list
+    }
+    return GROQ_FALLBACK_MODELS;
   },
 
   async chatCompletion(params: {
@@ -36,7 +89,6 @@ export const GroqFallback = {
     }
 
     const start = Date.now();
-    // Convert any multipart messages to plain text since reasoning runs over parsed OCR text
     const textMessages = params.messages.map((m) => ({
       role: m.role,
       content:
@@ -79,7 +131,7 @@ export const GroqFallback = {
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       throw new ProviderRequestError(
-        `[${sanitizeGroqLabel(params.model)}] HTTP ${res.status}: ${errText.slice(0, 200)}`,
+        `[${sanitizeGroqLabel(params.model)}] HTTP ${res.status}: ${sanitizeGroqError(errText.slice(0, 200))}`,
         {
           status: res.status,
           retryable: res.status === 429 || res.status >= 500,
