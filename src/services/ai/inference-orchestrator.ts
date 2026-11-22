@@ -139,10 +139,12 @@ export const InferenceOrchestrator = {
     let attempts = 0;
     const pages = params.pagesCount ?? (params.images?.length || 1);
     // Keep total time safely inside Vercel Hobby's 60s maxDuration
-    const TIME_BUDGET_MS = 52_000;
-    const PER_ATTEMPT_MAX_MS = GroqFallback.isConfigured() ? 22_000 : 26_000;
+    const TIME_BUDGET_MS = 50_000;
+    const hasGroq = GroqFallback.isConfigured();
+    const PER_ATTEMPT_MAX_MS = hasGroq ? 14_000 : 24_000;
+    const primaryQueue = hasGroq ? geminiModels.slice(0, 1) : geminiModels;
 
-    for (const model of geminiModels) {
+    for (const model of primaryQueue) {
       const elapsedMs = Date.now() - startedAt;
       const remainingMs = TIME_BUDGET_MS - elapsedMs;
       if (remainingMs < 5_000) break;
@@ -240,7 +242,8 @@ export const InferenceOrchestrator = {
             model: gModel,
             messages,
             temperature: params.temperature ?? 0.1,
-            max_tokens: params.maxTokens ?? 4096,
+            max_tokens: params.maxTokens ?? 3500,
+            json_mode: params.expectJson,
             timeoutMs: Math.min(18_000, remainingMs - 1_000),
           });
 

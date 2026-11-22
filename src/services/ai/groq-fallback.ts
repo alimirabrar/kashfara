@@ -3,7 +3,6 @@ import { ProviderRequestError, type ChatMessage, type InferenceResponse } from "
 
 export const GROQ_FALLBACK_MODELS = [
   "llama-3.3-70b-versatile",
-  "openai/gpt-oss-120b",
   "llama-3.1-8b-instant",
 ];
 
@@ -23,6 +22,7 @@ export const GroqFallback = {
     messages: ChatMessage[];
     temperature?: number;
     max_tokens?: number;
+    json_mode?: boolean;
     timeoutMs?: number;
   }): Promise<InferenceResponse> {
     const cfg = getConfig();
@@ -60,7 +60,8 @@ export const GroqFallback = {
           model: params.model,
           messages: textMessages,
           temperature: params.temperature ?? 0.1,
-          max_tokens: Math.min(params.max_tokens ?? 4096, 8000),
+          max_tokens: Math.min(params.max_tokens ?? 3500, 6000),
+          ...(params.json_mode ? { response_format: { type: "json_object" } } : {}),
         }),
         signal: AbortSignal.timeout(params.timeoutMs ?? 18_000),
       });

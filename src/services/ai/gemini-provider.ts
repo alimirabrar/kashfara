@@ -62,13 +62,14 @@ export const GEMINI_MODELS = [
 let cachedModels: { ids: string[]; at: number } | null = null;
 
 function rankModel(id: string): number {
-  // Higher = better. Prefer newest Flash (fast + strong multimodal), then Pro, then Lite.
-  const ver = Number(id.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? 0);
-  let score = ver * 100;
-  if (/flash/.test(id) && !/lite/.test(id)) score += 50;
-  else if (/pro/.test(id)) score += 30;
-  else if (/lite/.test(id)) score += 20;
-  if (/preview|exp/.test(id)) score -= 15;
+  // Prefer 2.5-flash / 2.5-flash-lite (supports thinkingBudget: 0 -> 2-4s latency)
+  let score = 0;
+  if (/^gemini-2\.5-flash$/.test(id)) score = 500;
+  else if (/^gemini-2\.5-flash-lite$/.test(id)) score = 450;
+  else if (/flash/.test(id) && !/lite/.test(id)) score = 350;
+  else if (/lite/.test(id)) score = 300;
+  else if (/pro/.test(id)) score = 200;
+  if (/preview|exp/.test(id)) score -= 50;
   return score;
 }
 
@@ -142,7 +143,7 @@ export const GeminiProvider = {
             !/(image|tts|audio|live|embedding|vision-|thinking-exp|learnlm|robotics|computer-use|native)/.test(id)
         )
         .sort((a, b) => rankModel(b) - rankModel(a))
-        .slice(0, 4);
+        .slice(0, 2);
 
       if (ids.length > 0) {
         cachedModels = { ids, at: Date.now() };

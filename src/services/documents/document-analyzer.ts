@@ -83,7 +83,7 @@ export const DocumentAnalyzer = {
     latency_ms: number;
     diagnostics: EngineDiagnostics;
   }> {
-    const parsedText = formatPagesForReasoning(doc.pages.slice(0, 6)).slice(0, 12000);
+    const parsedText = formatPagesForReasoning(doc.pages.slice(0, 5)).slice(0, 8000);
     const hasArabicHint = /[\u0600-\u06FF]/.test(doc.filename + " " + parsedText);
 
     const systemPrompt = `You are KASHFARA VISION's Document Reasoning Engine.
@@ -161,7 +161,7 @@ Return ONLY valid JSON:
       userPrompt: `Document: ${doc.filename} (${doc.page_count} pages)\n${templateHint}\n\n${parsedText}`,
       requiresArabic: hasArabicHint,
       expectJson: true,
-      maxTokens: 6000,
+      maxTokens: 3500,
       pagesCount: doc.page_count,
     });
 
