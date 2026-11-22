@@ -83,7 +83,7 @@ export const DocumentAnalyzer = {
     latency_ms: number;
     diagnostics: EngineDiagnostics;
   }> {
-    const parsedText = formatPagesForReasoning(doc.pages.slice(0, 8));
+    const parsedText = formatPagesForReasoning(doc.pages.slice(0, 6)).slice(0, 12000);
     const hasArabicHint = /[\u0600-\u06FF]/.test(doc.filename + " " + parsedText);
 
     const systemPrompt = `You are KASHFARA VISION's Document Reasoning Engine.
@@ -102,8 +102,8 @@ Perform:
    - "receipt": Payment Receipt / Purchase Order / Expense Voucher. Populate template_data with:
      { "receipt_number", "date", "merchant_name", "payer", "payment_method", "currency", "subtotal", "tax", "total_paid", "items": [{"name","qty","amount"}] }
    - "generic": If none of the 5 templates fit. Populate template_data with null.
-3. If the document is Arabic or non-English, provide a concise, faithful "english_translation" summarizing the full document content in English (otherwise null), plus 3-6 "key_points".
-4. Extract key-value "fields" (with exact verbatim "source_text" from the parsed text so coordinates can be matched) and "tables".
+3. If the document is Arabic or non-English, provide a concise "english_translation" (max 200 words) summarizing the key content in English (otherwise null), plus 3-5 short "key_points".
+4. Extract up to 25 key-value "fields" (with exact verbatim "source_text" from the parsed text so coordinates can be matched) and "tables". Keep responses concise.
 Never invent values not present in the text.
 
 Return ONLY valid JSON:

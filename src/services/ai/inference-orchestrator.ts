@@ -141,8 +141,8 @@ export const InferenceOrchestrator = {
     let attempts = 0;
     const pages = params.pagesCount ?? (params.images?.length || 1);
     // Keep total time safely inside Vercel Hobby's 60s maxDuration
-    const TIME_BUDGET_MS = 44_000;
-    const PER_ATTEMPT_MAX_MS = 16_000;
+    const TIME_BUDGET_MS = 52_000;
+    const PER_ATTEMPT_MAX_MS = 26_000;
 
     for (const model of models) {
       const elapsedMs = Date.now() - startedAt;
