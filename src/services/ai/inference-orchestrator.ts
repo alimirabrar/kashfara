@@ -5,6 +5,7 @@ import {
   type ChatContentPart,
   type ChatMessage,
 } from "./gemini-provider";
+import { GROQ_FALLBACK_MODELS, GroqFallback, sanitizeGroqLabel } from "./groq-fallback";
 import { DailyUsageLedger } from "@/services/usage/daily-ledger";
 import type { EngineDiagnostics, TaskCategory } from "@/types/kashfara";
 
@@ -104,7 +105,7 @@ export const InferenceOrchestrator = {
     temperature?: number;
     pagesCount?: number;
   }): Promise<OrchestratedResult<T>> {
-    if (!GeminiProvider.isConfigured()) {
+    if (!GeminiProvider.isConfigured() && !GroqFallback.isConfigured()) {
       throw new NoEligibleProviderError(
         "Kashfara Engine credential is not configured in the server environment.",
         ["Missing Kashfara Engine credential"]
@@ -112,13 +113,10 @@ export const InferenceOrchestrator = {
     }
 
     const startedAt = Date.now();
-    // Discover live models for this key (cached 15 min) so deprecated model IDs never 404
-    const models = await GeminiProvider.getAvailableModels().catch((err) => {
-      throw new NoEligibleProviderError(
-        err instanceof Error ? err.message : "Unable to reach Kashfara engine.",
-        [String(err)]
-      );
-    });
+    // Discover live models for primary engine if configured
+    const geminiModels = GeminiProvider.isConfigured()
+      ? await GeminiProvider.getAvailableModels().catch(() => [])
+      : [];
 
     const hasImages = Boolean(params.images && params.images.length > 0);
     const userContent: string | ChatContentPart[] = hasImages
@@ -142,9 +140,9 @@ export const InferenceOrchestrator = {
     const pages = params.pagesCount ?? (params.images?.length || 1);
     // Keep total time safely inside Vercel Hobby's 60s maxDuration
     const TIME_BUDGET_MS = 52_000;
-    const PER_ATTEMPT_MAX_MS = 26_000;
+    const PER_ATTEMPT_MAX_MS = GroqFallback.isConfigured() ? 22_000 : 26_000;
 
-    for (const model of models) {
+    for (const model of geminiModels) {
       const elapsedMs = Date.now() - startedAt;
       const remainingMs = TIME_BUDGET_MS - elapsedMs;
       if (remainingMs < 5_000) break;
@@ -211,7 +209,7 @@ export const InferenceOrchestrator = {
         const safeLabel = sanitizeModelLabel(model);
         diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: false, error: msg });
         failureNotes.push(msg);
-        if (err instanceof ProviderRequestError && err.fatal) {
+        if (err instanceof ProviderRequestError && err.fatal && !GroqFallback.isConfigured()) {
           console.error("[KASHFARA] Fatal engine error:", msg);
           throw new NoEligibleProviderError(
             "Kashfara engine credential was rejected. Please verify server configuration.",
@@ -223,6 +221,77 @@ export const InferenceOrchestrator = {
               attempts: diagAttempts,
             }
           );
+        }
+      }
+    }
+
+    // Immediate fallback to Groq production models if Gemini failed/timed out
+    if (GroqFallback.isConfigured()) {
+      for (const gModel of GROQ_FALLBACK_MODELS) {
+        const elapsedMs = Date.now() - startedAt;
+        const remainingMs = TIME_BUDGET_MS - elapsedMs;
+        if (remainingMs < 4_000) break;
+
+        attempts += 1;
+        const attemptStart = Date.now();
+        const safeLabel = sanitizeGroqLabel(gModel);
+        try {
+          const res = await GroqFallback.chatCompletion({
+            model: gModel,
+            messages,
+            temperature: params.temperature ?? 0.1,
+            max_tokens: params.maxTokens ?? 4096,
+            timeoutMs: Math.min(18_000, remainingMs - 1_000),
+          });
+
+          let parsed: T | null = null;
+          if (params.expectJson) {
+            parsed = extractJsonFromText<T>(res.content);
+            if (!parsed) {
+              const errMsg = `Unparseable JSON (${res.content.length} chars)`;
+              diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: false, error: errMsg });
+              failureNotes.push(`[${safeLabel}] ${errMsg}`);
+              continue;
+            }
+          }
+
+          diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: true });
+          const diagnostics: EngineDiagnostics = {
+            model: safeLabel,
+            total_ms: Date.now() - startedAt,
+            input_chars: params.userPrompt.length,
+            attempts: diagAttempts,
+          };
+
+          await DailyUsageLedger.recordInference({
+            provider: "kashfara-engine",
+            model: safeLabel,
+            shared_quota_pool: "kashfara-fallback-core",
+            task: params.task,
+            document_id: params.documentId,
+            pages_count: pages,
+            input_tokens: res.input_tokens,
+            output_tokens: res.output_tokens,
+            latency_ms: res.latency_ms,
+            success: true,
+            rate_limited: false,
+          });
+
+          return {
+            parsed,
+            raw_text: res.content,
+            provider: "Kashfara Vision",
+            model: "Kashfara Reasoning Core",
+            input_tokens: res.input_tokens,
+            output_tokens: res.output_tokens,
+            latency_ms: res.latency_ms,
+            attempts,
+            diagnostics,
+          };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: false, error: msg });
+          failureNotes.push(msg);
         }
       }
     }

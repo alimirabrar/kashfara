@@ -1,6 +1,8 @@
 export interface KashfaraConfig {
   geminiApiKey: string;
   geminiBaseUrl: string;
+  groqApiKey: string;
+  groqBaseUrl: string;
   dailyDocumentTarget: number;
   maxUploadSizeMb: number;
   maxDocumentPages: number;
@@ -12,6 +14,13 @@ export function getConfig(): KashfaraConfig {
   return {
     geminiApiKey: (process.env.GEMINI_API_KEY || "").trim(),
     geminiBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    groqApiKey: (
+      process.env.GROQ_API_KEY ||
+      process.env["groq-api"] ||
+      process.env.GROQ_API ||
+      ""
+    ).trim(),
+    groqBaseUrl: "https://api.groq.com/openai/v1",
     dailyDocumentTarget: 30,
     maxUploadSizeMb: 20,
     maxDocumentPages: 10,

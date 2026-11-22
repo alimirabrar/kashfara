@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { parseApiResponse } from "@/lib/api-response";
 import {
   ZoomIn,
@@ -43,6 +43,7 @@ export function DocumentWorkspaceView({
   const [rightTab, setRightTab] = useState<"template" | "fields" | "tables" | "logs">("template");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const viewerRef = useRef<HTMLDivElement | null>(null);
 
   const currentPage = useMemo(() => {
     if (!doc) return undefined;
@@ -154,13 +155,14 @@ export function DocumentWorkspaceView({
   function handleSelectField(field: ExtractedField) {
     setSelectedFieldId(field.field_id);
     setActivePageNum(field.page_number);
+    viewerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   const verifiedCount = doc.fields.filter((f) => f.verification_status === "VERIFIED").length;
   const reviewCount = doc.fields.filter((f) => f.verification_status === "NEEDS_REVIEW").length;
 
   return (
-    <div className="lg:h-[calc(100vh-6.5rem)] flex flex-col gap-3">
+    <div className="max-w-5xl mx-auto flex flex-col gap-5 pb-8">
       {/* Workspace Action Bar */}
       <div className="apple-card rounded-2xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5 min-w-0">
@@ -221,22 +223,48 @@ export function DocumentWorkspaceView({
         </div>
       )}
 
-      {/* 3-Pane Workstation */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0">
-        {/* Left: Pages & Signals */}
-        <div className="lg:col-span-2 apple-card rounded-2xl p-3 flex flex-col gap-3 overflow-y-auto max-h-[260px] lg:max-h-none">
-          <div className="text-[11px] font-mono uppercase tracking-wider text-[#6E6E73]">
-            Pages ({doc.pages.length})
+      {/* Spacious Vertical Workstation (Scroll-friendly, zero side-by-side congestion) */}
+      <div className="flex flex-col gap-5">
+        {/* 1. Horizontal Page Strip + Signals */}
+        <div className="apple-card rounded-2xl p-4 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-[11px] font-mono uppercase tracking-wider text-[#6E6E73]">
+              Document Pages ({doc.pages.length})
+            </div>
+            {doc.classification && (
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                {doc.classification.is_form && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-black text-white">Form</span>
+                )}
+                {doc.classification.has_tables && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#F5F5F7] text-black border border-black/10">Tables</span>
+                )}
+                {doc.classification.has_signatures && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Signatures
+                  </span>
+                )}
+                {doc.classification.has_stamps && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Stamps</span>
+                )}
+                {doc.classification.has_handwriting && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                    Handwriting
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-          <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible">
+
+          <div className="flex gap-3 overflow-x-auto pb-1">
             {doc.pages.map((p) => (
               <button
                 key={p.page_number}
                 onClick={() => setActivePageNum(p.page_number)}
                 className={cn(
-                  "shrink-0 w-28 lg:w-full p-2 rounded-xl border text-left transition-all",
+                  "shrink-0 w-28 p-2 rounded-xl border text-left transition-all",
                   currentPage?.page_number === p.page_number
-                    ? "bg-black border-black text-white"
+                    ? "bg-black border-black text-white shadow-sm"
                     : "bg-[#F5F5F7] border-black/5 text-[#6E6E73] hover:text-black"
                 )}
               >
@@ -244,15 +272,15 @@ export function DocumentWorkspaceView({
                   <img
                     src={p.image_url}
                     alt={`Page ${p.page_number}`}
-                    className="w-full h-20 object-contain rounded-lg bg-white mb-1.5"
+                    className="w-full h-24 object-contain rounded-lg bg-white mb-1.5"
                   />
                 ) : (
-                  <div className="w-full h-12 rounded-lg bg-white flex items-center justify-center text-[10px] font-mono text-black mb-1">
+                  <div className="w-full h-14 rounded-lg bg-white flex items-center justify-center text-[10px] font-mono text-black mb-1">
                     TEXT
                   </div>
                 )}
                 <div className="text-[11px] font-mono flex justify-between">
-                  <span>P.{p.page_number}</span>
+                  <span>Page {p.page_number}</span>
                   <span>
                     {doc.fields.filter((f) => f.page_number === p.page_number).length}f
                   </span>
@@ -261,40 +289,21 @@ export function DocumentWorkspaceView({
             ))}
           </div>
 
-          {doc.classification && (
-            <div className="hidden lg:block mt-auto pt-3 border-t border-black/8 space-y-1.5 text-[11px]">
-              <div className="font-mono uppercase text-[#6E6E73]">Signals</div>
-              <div className="flex flex-wrap gap-1">
-                {doc.classification.is_form && (
-                  <span className="px-2 py-0.5 rounded-full bg-black text-white">Form</span>
-                )}
-                {doc.classification.has_tables && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#F5F5F7] text-black border border-black/10">Tables</span>
-                )}
-                {doc.classification.has_signatures && (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    Signatures
-                  </span>
-                )}
-                {doc.classification.has_stamps && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Stamps</span>
-                )}
-                {doc.classification.has_handwriting && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                    Handwriting
-                  </span>
-                )}
-              </div>
-              <p className="text-[#6E6E73] leading-relaxed">{doc.classification.summary}</p>
-            </div>
+          {doc.classification?.summary && (
+            <p className="text-xs text-[#6E6E73] leading-relaxed border-t border-black/8 pt-2.5">
+              {doc.classification.summary}
+            </p>
           )}
         </div>
 
-        {/* Centre: Original Document Viewer with Bounding Box Overlays */}
-        <div className="lg:col-span-5 apple-card rounded-2xl flex flex-col min-h-[380px] lg:min-h-0 overflow-hidden">
-          <div className="px-3.5 py-2.5 border-b border-black/8 flex items-center justify-between bg-white">
+        {/* 2. Full-Width Original Document Viewer */}
+        <div
+          ref={viewerRef}
+          className="apple-card rounded-2xl flex flex-col overflow-hidden"
+        >
+          <div className="px-4 py-3 border-b border-black/8 flex items-center justify-between bg-white">
             <span className="text-xs font-mono text-[#6E6E73]">
-              ORIGINAL VIEWER · PAGE {currentPage?.page_number ?? 1}
+              ORIGINAL DOCUMENT VIEWER · PAGE {currentPage?.page_number ?? 1}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -302,9 +311,9 @@ export function DocumentWorkspaceView({
                 className="p-1.5 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-black"
                 title="Zoom Out"
               >
-                <ZoomOut className="w-3.5 h-3.5" />
+                <ZoomOut className="w-4 h-4" />
               </button>
-              <span className="text-[11px] font-mono text-black w-11 text-center">
+              <span className="text-xs font-mono text-black w-12 text-center">
                 {Math.round(zoom * 100)}%
               </span>
               <button
@@ -312,19 +321,19 @@ export function DocumentWorkspaceView({
                 className="p-1.5 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-black"
                 title="Zoom In"
               >
-                <ZoomIn className="w-3.5 h-3.5" />
+                <ZoomIn className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setZoom(1)}
                 className="p-1.5 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-black"
                 title="Reset Zoom"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto p-4 bg-[#F5F5F7] flex items-start justify-center">
+          <div className="max-h-[680px] overflow-auto p-4 sm:p-6 bg-[#F5F5F7] flex items-start justify-center">
             {currentPage?.image_url ? (
               <div
                 className="relative inline-block shadow-lg border border-black/10 rounded-xl overflow-hidden bg-white"
@@ -412,8 +421,8 @@ export function DocumentWorkspaceView({
           </div>
         </div>
 
-        {/* Right: Data Extraction & Proofing */}
-        <div className="lg:col-span-5 apple-card rounded-2xl flex flex-col min-h-[400px] lg:min-h-0 overflow-hidden">
+        {/* 3. Full-Width Data Extraction, Template & Proofing */}
+        <div className="apple-card rounded-2xl flex flex-col overflow-hidden">
           <div className="px-3.5 py-2.5 border-b border-black/8 bg-white flex items-center justify-between">
             <div className="flex items-center gap-1 overflow-x-auto">
               <button
