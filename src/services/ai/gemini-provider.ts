@@ -54,9 +54,9 @@ export class ProviderRequestError extends Error {
 
 /** Static fallback list, used only if live model listing fails. */
 export const GEMINI_MODELS = [
+  { id: "gemini-3.8-flash", context_window: 1_000_000 },
   { id: "gemini-2.5-flash", context_window: 1_000_000 },
   { id: "gemini-2.5-flash-lite", context_window: 1_000_000 },
-  { id: "gemini-2.0-flash", context_window: 1_000_000 },
 ];
 
 let cachedModels: { ids: string[]; at: number } | null = null;

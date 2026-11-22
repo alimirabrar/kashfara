@@ -1,6 +1,5 @@
 import {
   GeminiProvider,
-  GEMINI_MODELS,
   ProviderRequestError,
   type ChatContentPart,
   type ChatMessage,
@@ -112,8 +111,13 @@ export const InferenceOrchestrator = {
     }
 
     const startedAt = Date.now();
-    // Use fast static model list directly to avoid an extra /models network round-trip on cold starts
-    const models = GEMINI_MODELS.map((m) => m.id);
+    // Discover live models for this key (cached 15 min) so deprecated model IDs never 404
+    const models = await GeminiProvider.getAvailableModels().catch((err) => {
+      throw new NoEligibleProviderError(
+        err instanceof Error ? err.message : "Unable to reach Kashfara engine.",
+        [String(err)]
+      );
+    });
 
     const hasImages = Boolean(params.images && params.images.length > 0);
     const userContent: string | ChatContentPart[] = hasImages
