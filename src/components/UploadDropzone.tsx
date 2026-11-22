@@ -7,7 +7,7 @@ import { renderPdfPagesToPngFiles } from "@/lib/pdf-client";
 import { runOcrOnPageImage } from "@/lib/ocr-client";
 import { extractInstantFields } from "@/lib/instant-extractor";
 import { mergePageImagesFromClient, stripPageImagesForApi } from "@/lib/utils";
-import type { DocumentRecord, PipelineStep } from "@/types/kashfara";
+import type { DocumentRecord, PipelineStep, TemplateKind } from "@/types/kashfara";
 
 interface UploadDropzoneProps {
   maxPages?: number;
@@ -17,12 +17,22 @@ interface UploadDropzoneProps {
 
 const ACCEPTED_EXTS = ".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.docx,.pptx,.xlsx";
 
+const TEMPLATE_OPTIONS: Array<{ id: TemplateKind | "auto"; label: string }> = [
+  { id: "auto", label: "Auto-Detect" },
+  { id: "resume", label: "Resume / CV" },
+  { id: "invoice", label: "Invoice" },
+  { id: "bank_statement", label: "Bank Statement" },
+  { id: "contract", label: "Contract" },
+  { id: "receipt", label: "Receipt" },
+];
+
 export function UploadDropzone({
   maxPages = 10,
   onUploadedAndProcessed,
   compact = false,
 }: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateKind | "auto">("auto");
   const [busy, setBusy] = useState(false);
   const [stageText, setStageText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +96,7 @@ export function UploadDropzone({
       }
       pipeline.push({
         id: "ocr",
-        label: ranOcr ? "Arabic & English OCR (Tesseract)" : "Native Structural / PDF Text Parser",
+        label: ranOcr ? "Kashfara OCR Engine (Arabic & English)" : "Kashfara Structural & PDF Parser",
         status: "done",
         started_at: tOcr,
         duration_ms: Date.now() - tOcr,
@@ -122,7 +132,10 @@ export function UploadDropzone({
       const procRes = await fetch("/api/documents/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ document: stripPageImagesForApi(clientDoc) }),
+        body: JSON.stringify({
+          document: stripPageImagesForApi(clientDoc),
+          preferred_template: selectedTemplate,
+        }),
       });
       const procJson = await parseApiResponse(procRes);
 
@@ -162,6 +175,26 @@ export function UploadDropzone({
 
   return (
     <div className="space-y-3">
+      {/* Optional Template Selector */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[11px] font-mono text-[#6E6E73] mr-1">Template:</span>
+        {TEMPLATE_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            disabled={busy}
+            onClick={() => setSelectedTemplate(opt.id)}
+            className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all ${
+              selectedTemplate === opt.id
+                ? "bg-black text-white shadow-sm"
+                : "bg-white text-[#6E6E73] border border-black/10 hover:text-black"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       <div
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {

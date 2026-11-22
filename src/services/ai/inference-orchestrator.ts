@@ -1,6 +1,7 @@
 import {
   GeminiProvider,
   ProviderRequestError,
+  sanitizeModelLabel,
   type ChatContentPart,
   type ChatMessage,
 } from "./gemini-provider";
@@ -105,8 +106,8 @@ export const InferenceOrchestrator = {
   }): Promise<OrchestratedResult<T>> {
     if (!GeminiProvider.isConfigured()) {
       throw new NoEligibleProviderError(
-        "Kashfara engine key is missing. Set GEMINI_API_KEY in your Vercel environment variables and redeploy.",
-        ["Missing GEMINI_API_KEY"]
+        "Kashfara Engine credential is not configured in the server environment.",
+        ["Missing Kashfara Engine credential"]
       );
     }
 
@@ -161,19 +162,20 @@ export const InferenceOrchestrator = {
         });
 
         let parsed: T | null = null;
+        const safeLabel = sanitizeModelLabel(model);
         if (params.expectJson) {
           parsed = extractJsonFromText<T>(res.content);
           if (!parsed) {
             const errMsg = `Unparseable JSON (finish=${res.raw_finish_reason ?? "?"}, ${res.content.length} chars)`;
-            diagAttempts.push({ model, ms: Date.now() - attemptStart, ok: false, error: errMsg });
-            failureNotes.push(`[${model}] ${errMsg}`);
+            diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: false, error: errMsg });
+            failureNotes.push(`[${safeLabel}] ${errMsg}`);
             continue;
           }
         }
 
-        diagAttempts.push({ model, ms: Date.now() - attemptStart, ok: true });
+        diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: true });
         const diagnostics: EngineDiagnostics = {
-          model,
+          model: safeLabel,
           total_ms: Date.now() - startedAt,
           input_chars: params.userPrompt.length,
           attempts: diagAttempts,
@@ -206,12 +208,13 @@ export const InferenceOrchestrator = {
         };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        diagAttempts.push({ model, ms: Date.now() - attemptStart, ok: false, error: msg });
+        const safeLabel = sanitizeModelLabel(model);
+        diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: false, error: msg });
         failureNotes.push(msg);
         if (err instanceof ProviderRequestError && err.fatal) {
-          console.error("[Kashfara] fatal engine error:", msg);
+          console.error("[KASHFARA] Fatal engine error:", msg);
           throw new NoEligibleProviderError(
-            "Kashfara engine credential was rejected. Check GEMINI_API_KEY in Vercel and redeploy.",
+            "Kashfara engine credential was rejected. Please verify server configuration.",
             failureNotes,
             {
               model: null,

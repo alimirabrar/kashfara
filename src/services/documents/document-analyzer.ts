@@ -68,7 +68,10 @@ const VALID_TEMPLATES = new Set<TemplateKind>([
 ]);
 
 export const DocumentAnalyzer = {
-  async classifyAndExtract(doc: DocumentRecord): Promise<{
+  async classifyAndExtract(
+    doc: DocumentRecord,
+    preferredTemplate?: TemplateKind | "auto"
+  ): Promise<{
     classification: DocumentClassification;
     intelligence: DocumentIntelligence;
     fields: ExtractedField[];
@@ -146,12 +149,16 @@ Return ONLY valid JSON:
   ]
 }`;
 
-    // Single fast reasoning call over the entire parsed text (keeps total latency ~2-5s!)
+    const templateHint =
+      preferredTemplate && preferredTemplate !== "auto"
+        ? `User selected template "${preferredTemplate}". Use template "${preferredTemplate}" and populate its template_data fields.`
+        : `Automatically detect the best matching template ("resume", "invoice", "bank_statement", "contract", "receipt", or "generic").`;
+
     const res = await InferenceOrchestrator.runTask<RawCombinedPayload>({
       task: hasArabicHint ? "arabic_english_understanding" : "key_value_extraction",
       documentId: doc.id,
       systemPrompt,
-      userPrompt: `Document: ${doc.filename} (${doc.page_count} pages)\n\n${parsedText}`,
+      userPrompt: `Document: ${doc.filename} (${doc.page_count} pages)\n${templateHint}\n\n${parsedText}`,
       requiresArabic: hasArabicHint,
       expectJson: true,
       maxTokens: 6000,

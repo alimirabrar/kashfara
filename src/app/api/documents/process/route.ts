@@ -4,7 +4,7 @@ import { DocumentAnalyzer } from "@/services/documents/document-analyzer";
 import { EvidenceValidator } from "@/services/evidence/evidence-validator";
 import { DailyUsageLedger } from "@/services/usage/daily-ledger";
 import { NoEligibleProviderError } from "@/services/ai/inference-orchestrator";
-import type { DocumentRecord } from "@/types/kashfara";
+import type { DocumentRecord, TemplateKind } from "@/types/kashfara";
 
 export const maxDuration = 60;
 
@@ -13,7 +13,10 @@ export async function POST(req: Request) {
   const startAll = Date.now();
 
   try {
-    const body = (await req.json()) as { document?: DocumentRecord };
+    const body = (await req.json()) as {
+      document?: DocumentRecord;
+      preferred_template?: TemplateKind | "auto";
+    };
     const doc = body.document;
     if (!doc || !doc.id || !Array.isArray(doc.pages)) {
       return NextResponse.json(
@@ -25,7 +28,7 @@ export async function POST(req: Request) {
     doc.status = "processing";
     doc.error_message = undefined;
 
-    const analysis = await DocumentAnalyzer.classifyAndExtract(doc);
+    const analysis = await DocumentAnalyzer.classifyAndExtract(doc, body.preferred_template);
     doc.classification = analysis.classification;
     doc.intelligence = analysis.intelligence;
     doc.processing_logs.push({

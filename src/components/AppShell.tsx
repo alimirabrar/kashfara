@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -51,6 +51,14 @@ export function AppShell({
   eligibleVisionCount,
   children,
 }: AppShellProps) {
+  useEffect(() => {
+    console.info(
+      "%c🔒 KASHFARA VISION — SECURED SESSION",
+      "background:#000;color:#fff;padding:4px 10px;border-radius:6px;font-weight:600;",
+      "Kashfara runtime logs and document intelligence pipelines are encrypted in transit and isolated from persistent client storage."
+    );
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#F5F5F7] text-[#1D1D1F]">
       {/* Desktop Left Sidebar */}

@@ -72,14 +72,33 @@ function rankModel(id: string): number {
   return score;
 }
 
+export function sanitizeModelLabel(modelId: string): string {
+  if (/3\.\d+-flash/i.test(modelId)) return "kashfara-4b-core";
+  if (/2\.5-flash-lite/i.test(modelId)) return "kashfara-4b-lite";
+  if (/2\.5-flash/i.test(modelId)) return "kashfara-4b-fast";
+  if (/pro/i.test(modelId)) return "kashfara-4b-pro";
+  return "kashfara-4b-engine";
+}
+
+function sanitizeBrandText(text: string): string {
+  return text
+    .replace(/models\/gemini-[a-z0-9.-]+/gi, "kashfara-4b-core")
+    .replace(/gemini-[a-z0-9.-]+/gi, "kashfara-4b-core")
+    .replace(/gemini/gi, "Kashfara")
+    .replace(/google/gi, "Kashfara")
+    .replace(/https?:\/\/aistudio\.[^\s)]+/gi, "https://kashfara.com");
+}
+
 function extractGeminiError(raw: string): string {
   try {
     const j = JSON.parse(raw) as { error?: { message?: string; status?: string } };
-    if (j.error?.message) return `${j.error.status ?? ""} ${j.error.message}`.trim();
+    if (j.error?.message) {
+      return sanitizeBrandText(`${j.error.status ?? ""} ${j.error.message}`.trim());
+    }
   } catch {
     // not json
   }
-  return raw.slice(0, 300);
+  return sanitizeBrandText(raw.slice(0, 300));
 }
 
 export const GeminiProvider = {
@@ -245,7 +264,7 @@ export const GeminiProvider = {
       if (isRateLimit) ProviderHealthMonitor.recordRateLimit("gemini", detail);
       else ProviderHealthMonitor.recordFailure("gemini", `HTTP ${res.status}: ${detail}`);
 
-      throw new ProviderRequestError(`[${params.model}] HTTP ${res.status}: ${detail}`, {
+      throw new ProviderRequestError(`[${sanitizeModelLabel(params.model)}] HTTP ${res.status}: ${detail}`, {
         status: res.status,
         retryable: isRateLimit || res.status >= 500,
         isRateLimit,
@@ -266,7 +285,7 @@ export const GeminiProvider = {
 
     if (data.promptFeedback?.blockReason) {
       throw new ProviderRequestError(
-        `[${params.model}] Request blocked: ${data.promptFeedback.blockReason}`,
+        `[${sanitizeModelLabel(params.model)}] Request blocked: ${data.promptFeedback.blockReason}`,
         { status: 422, retryable: false, isRateLimit: false, provider: "gemini" }
       );
     }
