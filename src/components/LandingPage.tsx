@@ -626,6 +626,41 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* New Product Showcase: Kashfara Spreadsheet */}
+      <section id="kashfara-spreadsheet" className="py-20 px-4 sm:px-6 bg-[#F5F5F7] border-t border-black/8">
+        <div className="max-w-5xl mx-auto apple-card rounded-3xl p-8 sm:p-12 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+          <div className="space-y-4 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F5F5F7] border border-black/10 text-[11px] font-mono uppercase tracking-wider text-black">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span>New Product · Agentic Spreadsheet</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-black">
+              Kashfara Spreadsheet
+            </h2>
+            <p className="text-sm sm:text-base text-[#6E6E73] leading-relaxed">
+              An AI-native financial and enterprise spreadsheet built for Middle East banking, treasury, and operations. Import Excel or CSV, type <code className="px-1.5 py-0.5 rounded bg-[#F5F5F7] text-black font-mono text-xs">k=</code> in any cell instead of complex formulas, and generate instant data analysis reports with our collapsible AI copilot.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <Link
+              href="/spreadsheet"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-black text-white hover:bg-[#1D1D1F] text-sm font-semibold shadow-sm transition-all hover:scale-[1.02]"
+            >
+              <span>Know More</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/spreadsheet/demo"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full apple-glass text-black hover:bg-white text-sm font-medium transition-all"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Live Demo</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Bottom CTA */}
       <section className="py-20 px-4 sm:px-6 bg-[#F5F5F7]">
         <div className="max-w-4xl mx-auto rounded-3xl bg-black text-white p-8 sm:p-14 text-center space-y-6 shadow-2xl">
