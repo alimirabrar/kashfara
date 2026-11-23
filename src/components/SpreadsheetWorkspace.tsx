@@ -9,6 +9,8 @@ import {
   Download,
   FileSpreadsheet,
   Loader2,
+  Maximize2,
+  Minimize2,
   PanelRightClose,
   PanelRightOpen,
   Plus,
@@ -25,11 +27,23 @@ interface SheetData {
   grid: string[][];
 }
 
+interface CellStyle {
+  bg_color?: string;
+  text_color?: string;
+  bold?: boolean;
+}
+
 interface SelectionRange {
   startRow: number;
   startCol: number;
   endRow: number;
   endCol: number;
+}
+
+interface ChartSpec {
+  type: "bar" | "pie";
+  title: string;
+  data: Array<{ label: string; value: number }>;
 }
 
 interface AnalysisReport {
@@ -44,7 +58,8 @@ interface ChatItem {
   id: string;
   role: "user" | "assistant";
   content: string;
-  report?: AnalysisReport;
+  chart?: ChartSpec | null;
+  report?: AnalysisReport | null;
   engine?: string;
 }
 
@@ -60,6 +75,8 @@ const INITIAL_GRID: string[][] = [
   ["", "", "", "", "", "", ""],
   ["", "", "", "", "", "", ""],
 ];
+
+const CHART_PALETTE = ["#111827", "#374151", "#059669", "#D97706", "#2563EB", "#7C3AED", "#DC2626"];
 
 function padGrid(raw: string[][], minRows = 16, minCols = 10): string[][] {
   const rows = Math.max(minRows, raw.length);
@@ -116,11 +133,92 @@ function evalBasicFormula(expr: string, grid: string[][]): string | null {
   return null;
 }
 
+function ChartCard({ chart }: { chart: ChartSpec }) {
+  const items = (chart.data || []).filter((d) => Number.isFinite(Number(d.value)) && Number(d.value) > 0);
+  if (items.length === 0) return null;
+  const total = items.reduce((s, d) => s + Number(d.value), 0);
+  const maxVal = Math.max(...items.map((d) => Number(d.value)));
+
+  if (chart.type === "pie") {
+    const segments = items.map((d, idx) => {
+      const val = Number(d.value);
+      const pct = (val / total) * 100;
+      const start = items
+        .slice(0, idx)
+        .reduce((acc, prev) => acc + (Number(prev.value) / total) * 100, 0);
+      return {
+        ...d,
+        val,
+        pct,
+        color: CHART_PALETTE[idx % CHART_PALETTE.length],
+        start,
+      };
+    });
+
+    const gradientStops = segments
+      .map((s) => `${s.color} ${s.start.toFixed(2)}% ${(s.start + s.pct).toFixed(2)}%`)
+      .join(", ");
+
+    return (
+      <div className="mt-2 p-3 rounded-xl bg-[#F5F5F7] border border-black/10 space-y-3">
+        <div className="text-[11px] font-semibold text-black">{chart.title}</div>
+        <div className="flex items-center gap-4">
+          <div
+            className="w-24 h-24 rounded-full shrink-0 border border-black/10 shadow-inner"
+            style={{ background: `conic-gradient(${gradientStops})` }}
+          />
+          <div className="flex-1 space-y-1 text-[10px] min-w-0">
+            {segments.map((s, i) => (
+              <div key={i} className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 truncate text-black">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                  <span className="truncate">{s.label}</span>
+                </span>
+                <span className="font-mono text-[#6E6E73] shrink-0">
+                  {s.pct.toFixed(1)}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 p-3 rounded-xl bg-[#F5F5F7] border border-black/10 space-y-2">
+      <div className="text-[11px] font-semibold text-black">{chart.title}</div>
+      <div className="space-y-1.5">
+        {items.map((d, i) => {
+          const wPct = Math.max(4, Math.round((Number(d.value) / maxVal) * 100));
+          return (
+            <div key={i} className="space-y-0.5 text-[10px]">
+              <div className="flex justify-between text-black">
+                <span className="truncate pr-2">{d.label}</span>
+                <span className="font-mono text-[#6E6E73]">{Number(d.value).toLocaleString()}</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-black/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${wPct}%`,
+                    backgroundColor: CHART_PALETTE[i % CHART_PALETTE.length],
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const QUICK_PROMPTS = [
-  "Generate an executive data analysis report with metrics and anomalies",
+  "Generate a pie chart & data analysis report on Net Amounts",
+  "Color Status column green for Cleared, amber for Pending, red for Review",
   "Add a Gross Total column (Net Amount + VAT) for all rows",
   "Translate Arabic text in column A to English in a new column",
-  "Flag any rows needing review or missing approvals",
 ];
 
 export function SpreadsheetWorkspace() {
@@ -128,6 +226,7 @@ export function SpreadsheetWorkspace() {
     { name: "GCC_Ledger", grid: padGrid(INITIAL_GRID) },
   ]);
   const [activeSheetIdx, setActiveSheetIdx] = useState(0);
+  const [cellStyles, setCellStyles] = useState<Record<string, CellStyle>>({});
   const [undoStack, setUndoStack] = useState<string[][][]>([]);
 
   const [selection, setSelection] = useState<SelectionRange>({
@@ -140,7 +239,12 @@ export function SpreadsheetWorkspace() {
   const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
   const [cellBusyKey, setCellBusyKey] = useState<string | null>(null);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarFull, setSidebarFull] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(380);
+  const resizingRef = useRef(false);
+
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatItem[]>([
@@ -148,11 +252,12 @@ export function SpreadsheetWorkspace() {
       id: "welcome",
       role: "assistant",
       content:
-        'Select any cells or type `k= <prompt>` directly inside any cell (e.g. `k= sum D2:D6` or `k= translate A3 to English`). Ask me to edit data, add columns, or generate an analysis report.',
+        'Select any cells or type `k= <prompt>` directly inside any cell (e.g. `k= sum D2:D6`). Ask me to color cells, build bar/pie charts, edit rows, or generate a data analysis report.',
     },
   ]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const activeSheet = sheets[activeSheetIdx] || sheets[0];
   const grid = activeSheet.grid;
 
@@ -173,6 +278,14 @@ export function SpreadsheetWorkspace() {
 
   const activeCellValue = grid[selection.startRow]?.[selection.startCol] ?? "";
 
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      void rootRef.current?.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      void document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  }
+
   function updateGrid(mutator: (prev: string[][]) => string[][]) {
     setUndoStack((u) => [...u.slice(-19), grid.map((r) => [...r])]);
     setSheets((prev) =>
@@ -192,7 +305,6 @@ export function SpreadsheetWorkspace() {
   async function commitCellValue(row: number, col: number, rawVal: string) {
     const trimmed = rawVal.trim();
 
-    // 1. Standard =SUM / =AVG formula
     if (trimmed.startsWith("=")) {
       const computed = evalBasicFormula(trimmed, grid);
       updateGrid((g) => {
@@ -203,7 +315,6 @@ export function SpreadsheetWorkspace() {
       return;
     }
 
-    // 2. Kashfara in-cell AI prompt: k= <prompt>
     if (/^k\s*=/i.test(trimmed)) {
       const aiPrompt = trimmed.replace(/^k\s*=/i, "").trim();
       if (!aiPrompt) return;
@@ -225,7 +336,10 @@ export function SpreadsheetWorkspace() {
         const json = await parseApiResponse(res);
         updateGrid((g) => {
           const next = g.map((r) => [...r]);
-          next[row][col] = res.ok && json.cell_value !== undefined ? String(json.cell_value) : `ERR: ${json.error || "Failed"}`;
+          next[row][col] =
+            res.ok && json.cell_value !== undefined
+              ? String(json.cell_value)
+              : `ERR: ${json.error || "Failed"}`;
           return next;
         });
       } finally {
@@ -253,6 +367,7 @@ export function SpreadsheetWorkspace() {
     if (imported.length > 0) {
       setSheets(imported);
       setActiveSheetIdx(0);
+      setCellStyles({});
       setUndoStack([]);
       setSelection({ startRow: 0, startCol: 0, endRow: 0, endCol: 0 });
     }
@@ -317,7 +432,28 @@ export function SpreadsheetWorkspace() {
       const json = await parseApiResponse(res);
       if (!res.ok) throw new Error(json.error || "Spreadsheet AI failed.");
 
-      // Apply updates, new_columns, and new_rows to active sheet
+      if (Array.isArray(json.cell_styles) && json.cell_styles.length > 0) {
+        setCellStyles((prev) => {
+          const next = { ...prev };
+          for (const st of json.cell_styles as Array<{
+            row: number;
+            col: number;
+            bg_color?: string;
+            text_color?: string;
+            bold?: boolean;
+          }>) {
+            if (st.row >= 0 && st.col >= 0) {
+              next[`${activeSheetIdx}:${st.row}:${st.col}`] = {
+                bg_color: st.bg_color,
+                text_color: st.text_color,
+                bold: st.bold,
+              };
+            }
+          }
+          return next;
+        });
+      }
+
       const hasUpdates =
         (Array.isArray(json.updates) && json.updates.length > 0) ||
         (Array.isArray(json.new_columns) && json.new_columns.length > 0) ||
@@ -340,7 +476,6 @@ export function SpreadsheetWorkspace() {
 
           if (Array.isArray(json.new_columns)) {
             for (const nc of json.new_columns as Array<{ header: string; values: string[] }>) {
-              // Find first completely empty column
               const cols = next[0]?.length || 0;
               let targetCol = cols;
               for (let c = 0; c < cols; c++) {
@@ -363,7 +498,9 @@ export function SpreadsheetWorkspace() {
             let insertRow = next.findIndex((r) => r.every((c) => !c));
             if (insertRow === -1) insertRow = next.length;
             for (const nr of json.new_rows as string[][]) {
-              if (insertRow >= next.length) next = padGrid(next, insertRow + 1, Math.max(next[0].length, nr.length));
+              if (insertRow >= next.length) {
+                next = padGrid(next, insertRow + 1, Math.max(next[0].length, nr.length));
+              }
               nr.forEach((v, cIdx) => {
                 next[insertRow][cIdx] = String(v ?? "");
               });
@@ -381,6 +518,7 @@ export function SpreadsheetWorkspace() {
           id: `a_${Date.now()}`,
           role: "assistant",
           content: json.reply || "Completed.",
+          chart: json.chart,
           report: json.analysis_report,
           engine: json.engine,
         },
@@ -401,8 +539,18 @@ export function SpreadsheetWorkspace() {
 
   return (
     <div
+      ref={rootRef}
       className="h-screen flex flex-col bg-[#F5F5F7] text-[#1D1D1F] select-none"
-      onMouseUp={() => setIsDragging(false)}
+      onMouseMove={(e) => {
+        if (resizingRef.current) {
+          const nextW = Math.max(280, Math.min(760, window.innerWidth - e.clientX));
+          setSidebarWidth(nextW);
+        }
+      }}
+      onMouseUp={() => {
+        setIsDragging(false);
+        resizingRef.current = false;
+      }}
     >
       {/* Development Warning Banner with Blinking Red Light */}
       <div className="bg-black text-white px-4 py-2 flex items-center justify-center gap-2.5 text-[11px] font-mono tracking-wide border-b border-white/15">
@@ -411,7 +559,7 @@ export function SpreadsheetWorkspace() {
           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
         </span>
         <span className="text-center">
-          KASHFARA SPREADSHEET IS STILL IN DEVELOPMENT — ERRORS, BUGS, AND MORE FEATURES WILL COME SOON
+          KASHFARA SPREADSHEET IS STILL IN DEVELOPMENT — SOME FEATURES MAY CAUSE ERRORS
         </span>
       </div>
 
@@ -454,6 +602,14 @@ export function SpreadsheetWorkspace() {
             <Upload className="w-3.5 h-3.5" /> Import Excel/CSV
           </button>
           <button
+            onClick={toggleFullscreen}
+            className="px-3 py-1.5 rounded-full bg-[#F5F5F7] hover:bg-black hover:text-white text-xs font-medium text-black flex items-center gap-1.5 transition-colors shrink-0"
+            title="Toggle Full Screen"
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            <span>{isFullscreen ? "Exit Full" : "Full Screen"}</span>
+          </button>
+          <button
             onClick={() => handleExport("xlsx")}
             className="px-3 py-1.5 rounded-full bg-[#F5F5F7] hover:bg-black hover:text-white text-xs font-medium text-black flex items-center gap-1.5 transition-colors shrink-0"
           >
@@ -474,7 +630,10 @@ export function SpreadsheetWorkspace() {
             <Undo2 className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => setSidebarOpen((v) => !v)}
+            onClick={() => {
+              setSidebarOpen((v) => !v);
+              setSidebarFull(false);
+            }}
             className={cn(
               "px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0",
               sidebarOpen
@@ -493,223 +652,265 @@ export function SpreadsheetWorkspace() {
       </header>
 
       {/* Formula Bar */}
-      <div className="h-10 px-4 bg-white border-b border-black/10 flex items-center gap-3 text-xs shrink-0">
-        <span className="font-mono font-semibold px-2.5 py-0.5 rounded bg-[#F5F5F7] text-black min-w-[64px] text-center">
-          {selectionLabel}
-        </span>
-        <span className="font-mono text-[#6E6E73] italic">fx</span>
-        <input
-          type="text"
-          value={activeCellValue}
-          onChange={(e) => {
-            const val = e.target.value;
-            setSheets((prev) =>
-              prev.map((s, idx) => {
-                if (idx !== activeSheetIdx) return s;
-                const next = s.grid.map((r) => [...r]);
-                next[selection.startRow][selection.startCol] = val;
-                return { ...s, grid: next };
-              })
-            );
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              void commitCellValue(
-                selection.startRow,
-                selection.startCol,
-                grid[selection.startRow][selection.startCol]
+      {!sidebarFull && (
+        <div className="h-10 px-4 bg-white border-b border-black/10 flex items-center gap-3 text-xs shrink-0">
+          <span className="font-mono font-semibold px-2.5 py-0.5 rounded bg-[#F5F5F7] text-black min-w-[64px] text-center">
+            {selectionLabel}
+          </span>
+          <span className="font-mono text-[#6E6E73] italic">fx</span>
+          <input
+            type="text"
+            value={activeCellValue}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSheets((prev) =>
+                prev.map((s, idx) => {
+                  if (idx !== activeSheetIdx) return s;
+                  const next = s.grid.map((r) => [...r]);
+                  next[selection.startRow][selection.startCol] = val;
+                  return { ...s, grid: next };
+                })
               );
-            }
-          }}
-          placeholder="Enter value, =SUM(A1:A5), or k= <AI prompt>..."
-          className="flex-1 bg-transparent text-xs font-mono text-black focus:outline-none select-text"
-        />
-        <span className="hidden md:inline text-[11px] font-mono text-[#6E6E73]">
-          Tip: Type <strong className="text-black">k=</strong> in any cell for AI
-        </span>
-      </div>
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                void commitCellValue(
+                  selection.startRow,
+                  selection.startCol,
+                  grid[selection.startRow][selection.startCol]
+                );
+              }
+            }}
+            placeholder="Enter value, =SUM(A1:A5), or k= <AI prompt>..."
+            className="flex-1 bg-transparent text-xs font-mono text-black focus:outline-none select-text"
+          />
+          <span className="hidden md:inline text-[11px] font-mono text-[#6E6E73]">
+            Tip: Type <strong className="text-black">k=</strong> in any cell for AI
+          </span>
+        </div>
+      )}
 
-      {/* Main Grid + Collapsible AI Sidebar */}
+      {/* Main Grid + Resizable/Full-Screen Collapsible AI Sidebar */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Spreadsheet Grid */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white">
-          <div className="flex-1 overflow-auto">
-            <table className="border-collapse text-xs table-fixed">
-              <thead className="sticky top-0 z-20 bg-[#F5F5F7]">
-                <tr>
-                  <th className="w-11 border-b border-r border-black/10 bg-[#F5F5F7] sticky left-0 z-30" />
-                  {Array.from({ length: grid[0]?.length || 0 }, (_, c) => (
-                    <th
-                      key={c}
-                      className={cn(
-                        "min-w-[130px] w-[140px] h-7 border-b border-r border-black/10 font-mono text-[11px] font-medium text-[#6E6E73]",
-                        c >= normSel.startCol && c <= normSel.endCol && "bg-black/10 text-black"
-                      )}
-                    >
-                      {colLetter(c)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {grid.map((row, r) => (
-                  <tr key={r}>
-                    <td
-                      className={cn(
-                        "sticky left-0 z-10 w-11 h-8 border-b border-r border-black/10 bg-[#F5F5F7] text-center font-mono text-[11px] text-[#6E6E73]",
-                        r >= normSel.startRow && r <= normSel.endRow && "bg-black/10 text-black font-semibold"
-                      )}
-                    >
-                      {r + 1}
-                    </td>
-                    {row.map((val, c) => {
-                      const inSel =
-                        r >= normSel.startRow &&
-                        r <= normSel.endRow &&
-                        c >= normSel.startCol &&
-                        c <= normSel.endCol;
-                      const isPrimary = r === selection.startRow && c === selection.startCol;
-                      const isEditing = editingCell?.row === r && editingCell?.col === c;
-                      const isBusy = cellBusyKey === `${r}:${c}`;
-
-                      return (
-                        <td
-                          key={c}
-                          onMouseDown={(e) => {
-                            if (e.shiftKey) {
-                              setSelection((s) => ({ ...s, endRow: r, endCol: c }));
-                            } else {
-                              setSelection({ startRow: r, startCol: c, endRow: r, endCol: c });
-                              setIsDragging(true);
-                            }
-                            if (editingCell && (editingCell.row !== r || editingCell.col !== c)) {
-                              setEditingCell(null);
-                            }
-                          }}
-                          onMouseEnter={() => {
-                            if (isDragging) {
-                              setSelection((s) => ({ ...s, endRow: r, endCol: c }));
-                            }
-                          }}
-                          onDoubleClick={() => setEditingCell({ row: r, col: c })}
-                          className={cn(
-                            "h-8 border-b border-r border-black/10 px-2 relative cursor-cell truncate",
-                            inSel && "bg-black/[0.04]",
-                            isPrimary && "ring-2 ring-inset ring-black bg-white z-10",
-                            r === 0 && "font-semibold bg-[#F5F5F7]/60"
-                          )}
-                        >
-                          {isBusy ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[#6E6E73]">
-                              <Loader2 className="w-3 h-3 animate-spin" /> AI...
-                            </span>
-                          ) : isEditing ? (
-                            <input
-                              autoFocus
-                              defaultValue={val}
-                              onBlur={(e) => {
-                                setEditingCell(null);
-                                if (e.target.value !== val) {
-                                  void commitCellValue(r, c, e.target.value);
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  const v = (e.target as HTMLInputElement).value;
-                                  setEditingCell(null);
-                                  void commitCellValue(r, c, v);
-                                } else if (e.key === "Escape") {
-                                  setEditingCell(null);
-                                }
-                              }}
-                              className="w-full h-full bg-white text-xs text-black focus:outline-none select-text"
-                            />
-                          ) : (
-                            <span dir="auto" className="text-xs text-black">
-                              {val}
-                            </span>
-                          )}
-                        </td>
-                      );
-                    })}
+        {!sidebarFull && (
+          <div className="flex-1 flex flex-col min-w-0 bg-white">
+            <div className="flex-1 overflow-auto">
+              <table className="border-collapse text-xs table-fixed">
+                <thead className="sticky top-0 z-20 bg-[#F5F5F7]">
+                  <tr>
+                    <th className="w-11 border-b border-r border-black/10 bg-[#F5F5F7] sticky left-0 z-30" />
+                    {Array.from({ length: grid[0]?.length || 0 }, (_, c) => (
+                      <th
+                        key={c}
+                        className={cn(
+                          "min-w-[130px] w-[140px] h-7 border-b border-r border-black/10 font-mono text-[11px] font-medium text-[#6E6E73]",
+                          c >= normSel.startCol && c <= normSel.endCol && "bg-black/10 text-black"
+                        )}
+                      >
+                        {colLetter(c)}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {grid.map((row, r) => (
+                    <tr key={r}>
+                      <td
+                        className={cn(
+                          "sticky left-0 z-10 w-11 h-8 border-b border-r border-black/10 bg-[#F5F5F7] text-center font-mono text-[11px] text-[#6E6E73]",
+                          r >= normSel.startRow && r <= normSel.endRow && "bg-black/10 text-black font-semibold"
+                        )}
+                      >
+                        {r + 1}
+                      </td>
+                      {row.map((val, c) => {
+                        const inSel =
+                          r >= normSel.startRow &&
+                          r <= normSel.endRow &&
+                          c >= normSel.startCol &&
+                          c <= normSel.endCol;
+                        const isPrimary = r === selection.startRow && c === selection.startCol;
+                        const isEditing = editingCell?.row === r && editingCell?.col === c;
+                        const isBusy = cellBusyKey === `${r}:${c}`;
+                        const customStyle = cellStyles[`${activeSheetIdx}:${r}:${c}`];
 
-          {/* Bottom Sheet Tabs */}
-          <div className="h-9 px-3 bg-[#F5F5F7] border-t border-black/10 flex items-center gap-1.5 overflow-x-auto shrink-0">
-            {sheets.map((s, idx) => (
+                        return (
+                          <td
+                            key={c}
+                            onMouseDown={(e) => {
+                              if (e.shiftKey) {
+                                setSelection((s) => ({ ...s, endRow: r, endCol: c }));
+                              } else {
+                                setSelection({ startRow: r, startCol: c, endRow: r, endCol: c });
+                                setIsDragging(true);
+                              }
+                              if (editingCell && (editingCell.row !== r || editingCell.col !== c)) {
+                                setEditingCell(null);
+                              }
+                            }}
+                            onMouseEnter={() => {
+                              if (isDragging) {
+                                setSelection((s) => ({ ...s, endRow: r, endCol: c }));
+                              }
+                            }}
+                            onDoubleClick={() => setEditingCell({ row: r, col: c })}
+                            style={{
+                              backgroundColor: customStyle?.bg_color,
+                              color: customStyle?.text_color,
+                              fontWeight: customStyle?.bold ? 600 : undefined,
+                            }}
+                            className={cn(
+                              "h-8 border-b border-r border-black/10 px-2 relative cursor-cell truncate",
+                              !customStyle?.bg_color && inSel && "bg-black/[0.04]",
+                              isPrimary && "ring-2 ring-inset ring-black z-10",
+                              !customStyle?.bg_color && r === 0 && "font-semibold bg-[#F5F5F7]/60"
+                            )}
+                          >
+                            {isBusy ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[#6E6E73]">
+                                <Loader2 className="w-3 h-3 animate-spin" /> AI...
+                              </span>
+                            ) : isEditing ? (
+                              <input
+                                autoFocus
+                                defaultValue={val}
+                                onBlur={(e) => {
+                                  setEditingCell(null);
+                                  if (e.target.value !== val) {
+                                    void commitCellValue(r, c, e.target.value);
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    const v = (e.target as HTMLInputElement).value;
+                                    setEditingCell(null);
+                                    void commitCellValue(r, c, v);
+                                  } else if (e.key === "Escape") {
+                                    setEditingCell(null);
+                                  }
+                                }}
+                                className="w-full h-full bg-white text-xs text-black focus:outline-none select-text"
+                              />
+                            ) : (
+                              <span dir="auto" className="text-xs">
+                                {val}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Bottom Sheet Tabs */}
+            <div className="h-9 px-3 bg-[#F5F5F7] border-t border-black/10 flex items-center gap-1.5 overflow-x-auto shrink-0">
+              {sheets.map((s, idx) => (
+                <button
+                  key={s.name + idx}
+                  onClick={() => setActiveSheetIdx(idx)}
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-xs font-medium transition-colors",
+                    idx === activeSheetIdx
+                      ? "bg-white text-black shadow-sm border border-black/10"
+                      : "text-[#6E6E73] hover:text-black"
+                  )}
+                >
+                  {s.name}
+                </button>
+              ))}
               <button
-                key={s.name + idx}
-                onClick={() => setActiveSheetIdx(idx)}
-                className={cn(
-                  "px-3 py-1 rounded-lg text-xs font-medium transition-colors",
-                  idx === activeSheetIdx
-                    ? "bg-white text-black shadow-sm border border-black/10"
-                    : "text-[#6E6E73] hover:text-black"
-                )}
+                onClick={() => {
+                  const name = `Sheet${sheets.length + 1}`;
+                  setSheets((s) => [...s, { name, grid: padGrid([[]]) }]);
+                  setActiveSheetIdx(sheets.length);
+                }}
+                className="p-1 rounded-lg hover:bg-black/5 text-[#6E6E73] hover:text-black"
+                title="Add Sheet"
               >
-                {s.name}
+                <Plus className="w-3.5 h-3.5" />
               </button>
-            ))}
-            <button
-              onClick={() => {
-                const name = `Sheet${sheets.length + 1}`;
-                setSheets((s) => [...s, { name, grid: padGrid([[]]) }]);
-                setActiveSheetIdx(sheets.length);
-              }}
-              className="p-1 rounded-lg hover:bg-black/5 text-[#6E6E73] hover:text-black"
-              title="Add Sheet"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => updateGrid((g) => [...g, Array(g[0].length).fill("")])}
-              className="ml-auto text-[11px] font-mono text-[#6E6E73] hover:text-black px-2"
-            >
-              + Row
-            </button>
-            <button
-              onClick={() => updateGrid((g) => g.map((r) => [...r, ""]))}
-              className="text-[11px] font-mono text-[#6E6E73] hover:text-black px-2"
-            >
-              + Col
-            </button>
+              <button
+                onClick={() => updateGrid((g) => [...g, Array(g[0].length).fill("")])}
+                className="ml-auto text-[11px] font-mono text-[#6E6E73] hover:text-black px-2"
+              >
+                + Row
+              </button>
+              <button
+                onClick={() => updateGrid((g) => g.map((r) => [...r, ""]))}
+                className="text-[11px] font-mono text-[#6E6E73] hover:text-black px-2"
+              >
+                + Col
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Collapsible Agentic AI Sidebar */}
+        {/* Resizable & Full-Screen Collapsible Agentic AI Sidebar */}
         {sidebarOpen && (
-          <aside className="w-full sm:w-96 shrink-0 bg-white border-l border-black/10 flex flex-col select-text">
-            <div className="p-3.5 border-b border-black/8 flex items-center justify-between">
+          <aside
+            style={sidebarFull ? undefined : { width: `${sidebarWidth}px` }}
+            className={cn(
+              "relative shrink-0 bg-white border-l border-black/10 flex flex-col select-text",
+              sidebarFull ? "w-full" : "max-w-[90vw]"
+            )}
+          >
+            {/* Drag Handle to Resize Sidebar */}
+            {!sidebarFull && (
+              <div
+                onMouseDown={() => {
+                  resizingRef.current = true;
+                }}
+                className="hidden sm:block absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-black/20 transition-colors z-30"
+                title="Drag to resize AI Copilot"
+              />
+            )}
+
+            <div className="p-3.5 border-b border-black/8 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-black" />
                 <span className="text-xs font-semibold text-black">
                   Kashfara Agentic Copilot
                 </span>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#F5F5F7] text-black">
-                Sel: {selectionLabel}
-              </span>
-            </div>
-
-            {/* Quick Action Chips */}
-            <div className="p-2.5 border-b border-black/8 flex flex-wrap gap-1.5 bg-[#F5F5F7]/60">
-              {QUICK_PROMPTS.map((qp) => (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#F5F5F7] text-black">
+                  Sel: {selectionLabel}
+                </span>
                 <button
-                  key={qp}
-                  onClick={() => void sendAgentPrompt(qp)}
-                  disabled={chatBusy}
-                  className="text-[10px] px-2.5 py-1 rounded-full bg-white hover:bg-black hover:text-white border border-black/10 text-black transition-colors text-left"
+                  onClick={() => setSidebarFull((v) => !v)}
+                  className="p-1 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-black"
+                  title={sidebarFull ? "Exit Chatbot Full Screen" : "Chatbot Full Screen"}
                 >
-                  {qp.length > 36 ? qp.slice(0, 34) + "…" : qp}
+                  {sidebarFull ? (
+                    <Minimize2 className="w-3.5 h-3.5" />
+                  ) : (
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  )}
                 </button>
-              ))}
+              </div>
             </div>
 
-            {/* Chat & Reports */}
+            {/* Prompt Suggestions (disappear automatically after the first user message) */}
+            {chatHistory.length <= 1 && (
+              <div className="p-2.5 border-b border-black/8 flex flex-wrap gap-1.5 bg-[#F5F5F7]/60">
+                {QUICK_PROMPTS.map((qp) => (
+                  <button
+                    key={qp}
+                    onClick={() => void sendAgentPrompt(qp)}
+                    disabled={chatBusy}
+                    className="text-[10px] px-2.5 py-1 rounded-full bg-white hover:bg-black hover:text-white border border-black/10 text-black transition-colors text-left"
+                  >
+                    {qp.length > 38 ? qp.slice(0, 36) + "…" : qp}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Chat, Charts & Reports */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-[#F5F5F7]/40">
               {chatHistory.map((item) => (
                 <div
@@ -724,6 +925,8 @@ export function SpreadsheetWorkspace() {
                   <div dir="auto" className="leading-relaxed whitespace-pre-wrap">
                     {item.content}
                   </div>
+
+                  {item.chart && <ChartCard chart={item.chart} />}
 
                   {item.report && (
                     <div className="mt-2 pt-2 border-t border-black/10 space-y-2.5">

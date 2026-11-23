@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   Globe2,
   Layers,
+  Mail,
   ShieldCheck,
   Sparkles,
   Table2,
@@ -44,15 +45,15 @@ const BANKING_ADVANTAGES = [
   },
   {
     icon: BarChart3,
-    tag: "Executive Intelligence",
-    title: "Instant Data Analysis & Audit Reports",
-    desc: "Generate board-ready financial summaries, anomaly alerts, cash-flow breakdowns, and variance metrics straight from imported Excel or CSV workbooks.",
+    tag: "Charts, Colors & Reports",
+    title: "Instant Pie/Bar Charts, Cell Coloring & Audits",
+    desc: "Ask the AI copilot to color-code anomalies, generate pie or bar charts, and produce board-ready financial summaries from any Excel or CSV workbook.",
   },
   {
-    icon: Globe2,
-    tag: "Arabic + English",
-    title: "Bilingual Financial Normalization",
-    desc: "Standardize mixed Arabic and English vendor names, invoice descriptions, and chart-of-accounts labels across GCC subsidiaries effortlessly.",
+    icon: ShieldCheck,
+    tag: "Air-Gapped On-Premise",
+    title: "Zero Token Tension. Zero Data Leakage.",
+    desc: "Unlike cloud spreadsheets, Kashfara Spreadsheet deploys directly inside your air-gapped banking or enterprise infrastructure—no external tokens, no per-seat API limits, 100% data sovereignty.",
   },
 ];
 
@@ -124,12 +125,13 @@ export default function SpreadsheetMarketingPage() {
                 <span>Live Demo — Kashfara Spreadsheet</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link
-                href="/demo"
-                className="inline-flex items-center gap-2 px-6 py-4 rounded-full apple-glass text-black text-sm font-medium hover:bg-[#F5F5F7] transition-all"
+              <a
+                href="mailto:enquiry@kashfara.com?subject=Kashfara%20Spreadsheet%20Air-Gapped%20Enterprise%20Inquiry"
+                className="inline-flex items-center gap-2 px-6 py-4 rounded-full apple-glass text-black text-sm font-semibold hover:bg-[#F5F5F7] transition-all"
               >
-                <span>Document Intelligence Demo</span>
-              </Link>
+                <Mail className="w-4 h-4" />
+                <span>Contact Sales</span>
+              </a>
             </div>
           </div>
 
@@ -227,10 +229,10 @@ export default function SpreadsheetMarketingPage() {
               </p>
             </div>
             <div className="p-6 rounded-2xl apple-surface space-y-2">
-              <ShieldCheck className="w-5 h-5 text-black" />
-              <div className="font-semibold text-black">Zero Persistent Server Storage</div>
+              <Globe2 className="w-5 h-5 text-black" />
+              <div className="font-semibold text-black">Air-Gapped &amp; Bilingual Ready</div>
               <p className="text-xs text-[#6E6E73]">
-                Your financial ledgers remain in your browser session with stateless, low-latency AI execution.
+                Deployed inside your private network for Arabic &amp; English workbooks with zero external data leakage.
               </p>
             </div>
           </div>
@@ -243,16 +245,25 @@ export default function SpreadsheetMarketingPage() {
               Try Kashfara Spreadsheet Live
             </h2>
             <p className="text-sm text-white/70 max-w-xl mx-auto">
-              Test our pre-loaded GCC Banking &amp; Treasury sample ledger or import your own Excel/CSV file right now.
+              Test our pre-loaded GCC Banking &amp; Treasury sample ledger, or contact our enterprise team for air-gapped on-premise deployment.
             </p>
-            <Link
-              href="/spreadsheet/demo"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-black hover:bg-white/90 text-sm font-semibold"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Open Spreadsheet Live Demo</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/spreadsheet/demo"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-black hover:bg-white/90 text-sm font-semibold"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Open Spreadsheet Live Demo</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <a
+                href="mailto:enquiry@kashfara.com?subject=Kashfara%20Spreadsheet%20Enterprise%20Sales"
+                className="inline-flex items-center gap-2 px-7 py-4 rounded-full border border-white/25 text-white hover:bg-white/10 text-sm font-semibold"
+              >
+                <Mail className="w-4 h-4" />
+                <span>enquiry@kashfara.com</span>
+              </a>
+            </div>
           </div>
         </section>
       </main>

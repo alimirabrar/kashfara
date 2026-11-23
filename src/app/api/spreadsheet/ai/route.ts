@@ -10,12 +10,28 @@ interface CellUpdate {
   value: string;
 }
 
+interface CellStyleUpdate {
+  row: number; // 0-based
+  col: number; // 0-based
+  bg_color?: string; // hex e.g. #DCFCE7, #FEE2E2, #FEF3C7, #000000
+  text_color?: string; // hex e.g. #166534, #991B1B, #FFFFFF
+  bold?: boolean;
+}
+
+interface ChartSpec {
+  type: "bar" | "pie";
+  title: string;
+  data: Array<{ label: string; value: number }>;
+}
+
 interface SpreadsheetAiPayload {
   reply?: string;
   cell_value?: string;
   updates?: CellUpdate[];
+  cell_styles?: CellStyleUpdate[];
   new_columns?: Array<{ header: string; values: string[] }>;
   new_rows?: string[][];
+  chart?: ChartSpec;
   analysis_report?: {
     title: string;
     summary: string;
@@ -96,26 +112,24 @@ Return ONLY valid JSON:
         : `You are KASHFARA SPREADSHEET AGENT, an enterprise financial, banking, and data analysis spreadsheet copilot.
 You can:
 1. Edit existing cells via "updates": [{"row": 0-based, "col": 0-based, "value": "string"}].
-2. Add computed columns via "new_columns": [{"header": "Column Name", "values": ["row1_val", "row2_val", ...]}] (values align starting from row index 1 if row 0 is header, or specify exact updates).
-3. Add rows via "new_rows": [["c0", "c1", ...]].
-4. Generate a structured "analysis_report" when the user asks for data analysis, audit, summary, or insights.
+2. Color or style cells via "cell_styles": [{"row": 0-based, "col": 0-based, "bg_color": "#DCFCE7", "text_color": "#166534", "bold": true}] (e.g. green #DCFCE7/#166534 for verified/cleared, red #FEE2E2/#991B1B for errors/anomalies, amber #FEF3C7/#92400E for pending/review, black #000000/#FFFFFF for headers).
+3. Add computed columns via "new_columns": [{"header": "Column Name", "values": ["row1_val", "row2_val", ...]}].
+4. Add rows via "new_rows": [["c0", "c1", ...]].
+5. Generate a visual chart ("bar" or "pie") via "chart": {"type": "pie"|"bar", "title": "Chart Title", "data": [{"label": "Item", "value": 123}]} whenever asked for a chart, graph, pie chart, or visual report.
+6. Generate a structured "analysis_report" when asked for data analysis, audit, summary, or insights.
 Always use 0-based row and col indices matching the grid provided. Preserve Arabic and English text faithfully.
 
 Return ONLY valid JSON:
 {
   "reply": "Clear summary of actions taken or answer",
   "updates": [{"row": 1, "col": 2, "value": "123.45"}],
+  "cell_styles": [],
   "new_columns": [],
   "new_rows": [],
-  "analysis_report": {
-    "title": "Report Title",
-    "summary": "Executive summary",
-    "metrics": [{"label": "Metric", "value": "Value"}],
-    "insights": ["Insight 1"],
-    "anomalies": ["Anomaly 1"]
-  }
+  "chart": null,
+  "analysis_report": null
 }
-(Omit "analysis_report" if the user only asked for a cell/column edit.)`;
+(Include "chart" and/or "analysis_report" objects when requested; otherwise null.)`;
 
     let lastErr = "Kashfara Spreadsheet Engine failed.";
     for (const model of models) {

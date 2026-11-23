@@ -11,6 +11,7 @@ import {
   FileSpreadsheet,
   Globe2,
   Layers,
+  Mail,
   Menu,
   ScanSearch,
   ShieldCheck,
@@ -344,10 +345,11 @@ export function LandingPage() {
               <ArrowRight className="w-4 h-4" />
             </Link>
             <a
-              href="#use-cases"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full apple-glass text-black text-sm font-medium hover:bg-[#F5F5F7] transition-all"
+              href="mailto:enquiry@kashfara.com?subject=Kashfara%20Vision%20Enterprise%20Sales"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full apple-glass text-black text-sm font-semibold hover:bg-[#F5F5F7] transition-all"
             >
-              <span>Explore Automation</span>
+              <Mail className="w-4 h-4" />
+              <span>Contact Sales</span>
             </a>
           </motion.div>
         </div>
@@ -668,9 +670,9 @@ export function LandingPage() {
             See Kashfara Vision on Your Own Documents.
           </h2>
           <p className="text-sm sm:text-base text-white/70 max-w-xl mx-auto">
-            Upload any Arabic, English, or bilingual PDF, image, or Office document in the Live Demo to inspect extracted fields, tables, digital forms, and grounded Q&amp;A.
+            Upload any Arabic, English, or bilingual PDF, image, or Office document in the Live Demo — or deploy Kashfara Vision inside your air-gapped network with zero token limits and zero data leakage.
           </p>
-          <div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/demo"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-black hover:bg-white/90 text-sm font-semibold transition-transform hover:scale-[1.02]"
@@ -679,6 +681,13 @@ export function LandingPage() {
               <span>Open Live Demo</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
+            <a
+              href="mailto:enquiry@kashfara.com?subject=Kashfara%20Vision%20Air-Gapped%20Deployment"
+              className="inline-flex items-center gap-2 px-7 py-4 rounded-full border border-white/25 text-white hover:bg-white/10 text-sm font-semibold"
+            >
+              <Mail className="w-4 h-4" />
+              <span>enquiry@kashfara.com</span>
+            </a>
           </div>
         </div>
       </section>
@@ -691,7 +700,12 @@ export function LandingPage() {
             <ScanSearch className="w-4 h-4" />
             <span>KASHFARA VISION</span>
           </div>
-          <div>Arabic &amp; English Multimodal Document Intelligence</div>
+          <div>
+            Sales &amp; Air-Gapped Deployment:{" "}
+            <a href="mailto:enquiry@kashfara.com" className="text-black font-medium hover:underline">
+              enquiry@kashfara.com
+            </a>
+          </div>
         </div>
       </footer>
     </div>
