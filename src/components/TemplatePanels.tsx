@@ -141,6 +141,75 @@ export function TemplatePanels({ doc, onDocumentUpdated }: TemplatePanelsProps) 
         </div>
       )}
 
+      {/* Unstructured Intelligence: Entities, Clauses/Sections & Action Items */}
+      {intel.entities &&
+        Object.values(intel.entities).some((arr) => Array.isArray(arr) && arr.length > 0) && (
+          <div className="p-3.5 rounded-2xl bg-white border border-black/10 space-y-2.5">
+            <div className="text-xs font-semibold text-black">Extracted Entities</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              {Object.entries(intel.entities)
+                .filter(([, arr]) => Array.isArray(arr) && arr.length > 0)
+                .map(([group, arr]) => (
+                  <div key={group} className="p-2.5 rounded-xl bg-[#F5F5F7]">
+                    <div className="text-[10px] font-mono uppercase text-[#6E6E73] mb-1">
+                      {group.replace(/_/g, " ")}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {(arr as string[]).slice(0, 10).map((item, idx) => (
+                        <span
+                          key={idx}
+                          dir="auto"
+                          className="px-2 py-0.5 rounded-full bg-white border border-black/10 text-[11px] text-black"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+      {intel.clauses_or_sections && intel.clauses_or_sections.length > 0 && (
+        <div className="p-3.5 rounded-2xl bg-white border border-black/10 space-y-2.5">
+          <div className="text-xs font-semibold text-black">
+            Sections, Clauses &amp; Semantic Breakdown
+          </div>
+          <div className="space-y-2">
+            {intel.clauses_or_sections.map((cs, idx) => (
+              <div key={idx} className="p-3 rounded-xl bg-[#F5F5F7] text-xs space-y-1">
+                <div className="font-semibold text-black" dir="auto">
+                  {cs.heading}
+                </div>
+                <div className="text-[#1D1D1F] leading-relaxed" dir="auto">
+                  {cs.summary}
+                </div>
+                {cs.risk_or_note && (
+                  <div className="text-[11px] font-mono text-amber-800 bg-amber-50 px-2 py-1 rounded-lg">
+                    Note: {cs.risk_or_note}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {intel.action_items && intel.action_items.length > 0 && (
+        <div className="p-3.5 rounded-2xl bg-white border border-black/10 space-y-1.5">
+          <div className="text-xs font-semibold text-black">Action Items &amp; Deadlines</div>
+          <ul className="space-y-1 text-xs text-[#1D1D1F]">
+            {intel.action_items.map((act, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                <span className="font-mono text-black">→</span>
+                <span dir="auto">{act}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Template 1: RESUME + Conditional ATS Machine */}
       {intel.template === "resume" && (
         <div className="space-y-4">

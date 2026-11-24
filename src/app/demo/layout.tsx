@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Live Demo — Document Proofing & Extraction Workstation",
+  title: "Live Demo — Arabic OCR, Document Intelligence & Document Chatbot",
   description:
-    "Test Kashfara Vision live: upload any Arabic, English, or bilingual PDF, image, or Office document to inspect extracted fields, tables, bounding-box proof of evidence, digital forms, and grounded Q&A.",
+    "Try Kashfara Vision's Arabic OCR, Arabic LLM, and Document Chatbot live: upload any Arabic or English PDF, image, resume, invoice, contract, or bank statement for instant extraction and Q&A.",
+  keywords: [
+    "Arabic document chatbot",
+    "document chatbot",
+    "Arabic OCR demo",
+    "Arabic LLM",
+    "document intelligence demo",
+    "PDF OCR online",
+    "resume ATS scorer",
+  ],
   alternates: {
     canonical: "/demo",
   },
   openGraph: {
-    title: "Live Demo | KASHFARA VISION",
+    title: "Live Demo — Arabic OCR & Document Chatbot | KASHFARA VISION",
     description:
-      "Upload any Arabic or English PDF, image, or Office document for instant OCR + Vision extraction with proof of evidence.",
+      "Upload any Arabic or English PDF, image, or Office document for instant OCR, smart templates, proof of evidence, and grounded document chatbot Q&A.",
     url: "https://kashfara.com/demo",
   },
 };

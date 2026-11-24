@@ -29,6 +29,20 @@ interface RawCombinedPayload {
   template_data?: Record<string, unknown> | null;
   english_translation?: string | null;
   key_points?: string[];
+  entities?: {
+    people?: string[];
+    organizations?: string[];
+    dates?: string[];
+    monetary_values?: string[];
+    locations?: string[];
+    reference_ids?: string[];
+  };
+  clauses_or_sections?: Array<{
+    heading?: string;
+    summary?: string;
+    risk_or_note?: string | null;
+  }>;
+  action_items?: string[];
   fields?: Array<{
     label?: string;
     normalized_key?: string;
@@ -102,8 +116,12 @@ Perform:
    - "receipt": Payment Receipt / Purchase Order / Expense Voucher. Populate template_data with:
      { "receipt_number", "date", "merchant_name", "payer", "payment_method", "currency", "subtotal", "tax", "total_paid", "items": [{"name","qty","amount"}] }
    - "generic": If none of the 5 templates fit. Populate template_data with null.
-3. If the document is Arabic or non-English, provide a concise "english_translation" (max 200 words) summarizing the key content in English (otherwise null), plus 3-5 short "key_points".
-4. Extract up to 25 key-value "fields" (with exact verbatim "source_text" from the parsed text so coordinates can be matched) and "tables". Keep responses concise.
+3. If the document is Arabic or non-English, provide a concise "english_translation" (max 250 words) summarizing the key content in English (otherwise null), plus 3-6 short "key_points".
+4. Extract deep unstructured intelligence:
+   - "entities": {"people": [], "organizations": [], "dates": [], "monetary_values": [], "locations": [], "reference_ids": []}
+   - "clauses_or_sections": [{"heading": "Section/Clause Title", "summary": "Concise summary", "risk_or_note": "Optional obligation/risk/deadline or null"}]
+   - "action_items": ["Any next step, payment due, renewal, or compliance action"]
+5. Extract up to 20 key-value "fields" (with exact verbatim "source_text" from the parsed text so coordinates can be matched) and "tables". Keep responses concise.
 Never invent values not present in the text.
 
 Return ONLY valid JSON:
@@ -126,6 +144,16 @@ Return ONLY valid JSON:
   "template_data": {},
   "english_translation": "string | null",
   "key_points": ["string"],
+  "entities": {
+    "people": [],
+    "organizations": [],
+    "dates": [],
+    "monetary_values": [],
+    "locations": [],
+    "reference_ids": []
+  },
+  "clauses_or_sections": [],
+  "action_items": [],
   "fields": [
     {
       "label": "string",
@@ -194,6 +222,15 @@ Return ONLY valid JSON:
       data: p.template_data && typeof p.template_data === "object" ? p.template_data : null,
       english_translation: p.english_translation ?? null,
       key_points: Array.isArray(p.key_points) ? p.key_points.map(String) : [],
+      entities: p.entities && typeof p.entities === "object" ? p.entities : undefined,
+      clauses_or_sections: Array.isArray(p.clauses_or_sections)
+        ? p.clauses_or_sections.map((cs) => ({
+            heading: String(cs.heading || "Section"),
+            summary: String(cs.summary || ""),
+            risk_or_note: cs.risk_or_note ?? null,
+          }))
+        : [],
+      action_items: Array.isArray(p.action_items) ? p.action_items.map(String) : [],
       ats: null,
     };
 

@@ -306,7 +306,7 @@ export function LandingPage() {
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full apple-surface text-[11px] font-mono uppercase tracking-widest text-[#1D1D1F]"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-black" />
-            <span>4B Parameter OCR + Vision Model · Arabic &amp; English</span>
+            <span>4B Arabic LLM · Arabic OCR · Document Chatbot</span>
           </motion.div>
 
           <motion.h1
@@ -315,9 +315,9 @@ export function LandingPage() {
             transition={{ duration: 0.55, delay: 0.05 }}
             className="text-4xl sm:text-6xl font-semibold tracking-tight text-black leading-[1.06]"
           >
-            4B Parameter Vision,
+            Arabic OCR &amp; Document Intelligence,
             <br />
-            <span className="text-[#6E6E73]">Built for Documents &amp; OCR.</span>
+            <span className="text-[#6E6E73]">Built for Speed &amp; Proof.</span>
           </motion.h1>
 
           <motion.p
@@ -326,9 +326,9 @@ export function LandingPage() {
             transition={{ duration: 0.55, delay: 0.12 }}
             className="text-base sm:text-xl text-[#6E6E73] max-w-2xl mx-auto leading-relaxed"
           >
-            Kashfara is a compact{" "}
-            <span className="text-black font-medium">4-billion-parameter multimodal model</span>{" "}
-            purpose-trained for document and OCR understanding — combining fast parsing with vision reasoning for low-compute, high-accuracy Arabic &amp; English automation.
+            Kashfara is a{" "}
+            <span className="text-black font-medium">4-billion-parameter Arabic LLM and OCR Document Intelligence platform</span>{" "}
+            — combining high-speed Arabic &amp; English OCR, unstructured entity &amp; clause extraction, and a grounded Document Chatbot with verifiable proof of evidence.
           </motion.p>
 
           <motion.div

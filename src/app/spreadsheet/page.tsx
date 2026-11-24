@@ -18,9 +18,17 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "KASHFARA SPREADSHEET — Agentic AI Spreadsheet for Banking & Enterprise",
+  title: "KASHFARA SPREADSHEET — Air-Gapped Agentic AI Spreadsheet for Banking",
   description:
-    "Replace complex Excel formulas with k= prompts and an agentic AI copilot. Built for Middle East banking, treasury reconciliation, VAT/ZATCA auditing, and instant financial reports.",
+    "Air-gapped agentic spreadsheet for Middle East banking & finance. Replace Excel formulas with k= prompts, color cells, generate pie/bar charts, and audit Arabic-English ledgers.",
+  keywords: [
+    "agentic spreadsheet",
+    "AI spreadsheet",
+    "Arabic Excel AI",
+    "air-gapped spreadsheet AI",
+    "banking ledger reconciliation",
+    "Kashfara Spreadsheet",
+  ],
   alternates: { canonical: "/spreadsheet" },
   openGraph: {
     title: "KASHFARA SPREADSHEET — Agentic AI Spreadsheet",

@@ -105,7 +105,10 @@ export const InferenceOrchestrator = {
     temperature?: number;
     pagesCount?: number;
   }): Promise<OrchestratedResult<T>> {
-    if (!GeminiProvider.isConfigured() && !GroqFallback.isConfigured()) {
+    const hasGroq = GroqFallback.isConfigured();
+    const hasGemini = GeminiProvider.isConfigured();
+
+    if (!hasGroq && !hasGemini) {
       throw new NoEligibleProviderError(
         "Kashfara Engine credential is not configured in the server environment.",
         ["Missing Kashfara Engine credential"]
@@ -113,11 +116,6 @@ export const InferenceOrchestrator = {
     }
 
     const startedAt = Date.now();
-    // Discover live models for primary engine if configured
-    const geminiModels = GeminiProvider.isConfigured()
-      ? await GeminiProvider.getAvailableModels().catch(() => [])
-      : [];
-
     const hasImages = Boolean(params.images && params.images.length > 0);
     const userContent: string | ChatContentPart[] = hasImages
       ? [
@@ -138,102 +136,15 @@ export const InferenceOrchestrator = {
     const diagAttempts: EngineDiagnostics["attempts"] = [];
     let attempts = 0;
     const pages = params.pagesCount ?? (params.images?.length || 1);
-    // Keep total time safely inside Vercel Hobby's 60s maxDuration
     const TIME_BUDGET_MS = 50_000;
-    const hasGroq = GroqFallback.isConfigured();
-    const PER_ATTEMPT_MAX_MS = hasGroq ? 14_000 : 24_000;
-    const primaryQueue = hasGroq ? geminiModels.slice(0, 1) : geminiModels;
 
-    for (const model of primaryQueue) {
-      const elapsedMs = Date.now() - startedAt;
-      const remainingMs = TIME_BUDGET_MS - elapsedMs;
-      if (remainingMs < 5_000) break;
-
-      attempts += 1;
-      const attemptStart = Date.now();
-      try {
-        const res = await GeminiProvider.chatCompletion({
-          model,
-          messages,
-          temperature: params.temperature ?? 0.1,
-          max_tokens: params.maxTokens ?? 4096,
-          json_mode: params.expectJson,
-          timeoutMs: Math.min(PER_ATTEMPT_MAX_MS, remainingMs - 1_500),
-        });
-
-        let parsed: T | null = null;
-        const safeLabel = sanitizeModelLabel(model);
-        if (params.expectJson) {
-          parsed = extractJsonFromText<T>(res.content);
-          if (!parsed) {
-            const errMsg = `Unparseable JSON (finish=${res.raw_finish_reason ?? "?"}, ${res.content.length} chars)`;
-            diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: false, error: errMsg });
-            failureNotes.push(`[${safeLabel}] ${errMsg}`);
-            continue;
-          }
-        }
-
-        diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: true });
-        const diagnostics: EngineDiagnostics = {
-          model: safeLabel,
-          total_ms: Date.now() - startedAt,
-          input_chars: params.userPrompt.length,
-          attempts: diagAttempts,
-        };
-
-        await DailyUsageLedger.recordInference({
-          provider: "kashfara-engine",
-          model: "kashfara-multimodal",
-          shared_quota_pool: GeminiProvider.poolId,
-          task: params.task,
-          document_id: params.documentId,
-          pages_count: pages,
-          input_tokens: res.input_tokens,
-          output_tokens: res.output_tokens,
-          latency_ms: res.latency_ms,
-          success: true,
-          rate_limited: false,
-        });
-
-        return {
-          parsed,
-          raw_text: res.content,
-          provider: "Kashfara Vision",
-          model: "Kashfara Reasoning Core",
-          input_tokens: res.input_tokens,
-          output_tokens: res.output_tokens,
-          latency_ms: res.latency_ms,
-          attempts,
-          diagnostics,
-        };
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        const safeLabel = sanitizeModelLabel(model);
-        diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: false, error: msg });
-        failureNotes.push(msg);
-        if (err instanceof ProviderRequestError && err.fatal && !GroqFallback.isConfigured()) {
-          console.error("[KASHFARA] Fatal engine error:", msg);
-          throw new NoEligibleProviderError(
-            "Kashfara engine credential was rejected. Please verify server configuration.",
-            failureNotes,
-            {
-              model: null,
-              total_ms: Date.now() - startedAt,
-              input_chars: params.userPrompt.length,
-              attempts: diagAttempts,
-            }
-          );
-        }
-      }
-    }
-
-    // Immediate fallback to live Groq production models if Gemini failed/timed out
-    if (GroqFallback.isConfigured()) {
+    // 1. PRIMARY ENGINE: Groq (ultra-fast LPU reasoning over parsed OCR/structural text)
+    if (hasGroq) {
       const groqModels = await GroqFallback.getAvailableModels();
       for (const gModel of groqModels) {
         const elapsedMs = Date.now() - startedAt;
         const remainingMs = TIME_BUDGET_MS - elapsedMs;
-        if (remainingMs < 4_000) break;
+        if (remainingMs < 5_000) break;
 
         attempts += 1;
         const attemptStart = Date.now();
@@ -243,9 +154,9 @@ export const InferenceOrchestrator = {
             model: gModel,
             messages,
             temperature: params.temperature ?? 0.1,
-            max_tokens: params.maxTokens ?? 3500,
+            max_tokens: params.maxTokens ?? 4096,
             json_mode: params.expectJson,
-            timeoutMs: Math.min(18_000, remainingMs - 1_000),
+            timeoutMs: Math.min(20_000, remainingMs - 1_500),
           });
 
           let parsed: T | null = null;
@@ -270,7 +181,7 @@ export const InferenceOrchestrator = {
           await DailyUsageLedger.recordInference({
             provider: "kashfara-engine",
             model: safeLabel,
-            shared_quota_pool: "kashfara-fallback-core",
+            shared_quota_pool: "kashfara-primary-core",
             task: params.task,
             document_id: params.documentId,
             pages_count: pages,
@@ -300,6 +211,82 @@ export const InferenceOrchestrator = {
       }
     }
 
+    // 2. FALLBACK ENGINE: Gemini (if Groq failed, rate-limited, or not configured)
+    if (hasGemini) {
+      const geminiModels = await GeminiProvider.getAvailableModels().catch(() => []);
+      for (const model of geminiModels) {
+        const elapsedMs = Date.now() - startedAt;
+        const remainingMs = TIME_BUDGET_MS - elapsedMs;
+        if (remainingMs < 5_000) break;
+
+        attempts += 1;
+        const attemptStart = Date.now();
+        const safeLabel = sanitizeModelLabel(model);
+        try {
+          const res = await GeminiProvider.chatCompletion({
+            model,
+            messages,
+            temperature: params.temperature ?? 0.1,
+            max_tokens: params.maxTokens ?? 4096,
+            json_mode: params.expectJson,
+            timeoutMs: Math.min(24_000, remainingMs - 1_500),
+          });
+
+          let parsed: T | null = null;
+          if (params.expectJson) {
+            parsed = extractJsonFromText<T>(res.content);
+            if (!parsed) {
+              const errMsg = `Unparseable JSON (finish=${res.raw_finish_reason ?? "?"}, ${res.content.length} chars)`;
+              diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: false, error: errMsg });
+              failureNotes.push(`[${safeLabel}] ${errMsg}`);
+              continue;
+            }
+          }
+
+          diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: true });
+          const diagnostics: EngineDiagnostics = {
+            model: safeLabel,
+            total_ms: Date.now() - startedAt,
+            input_chars: params.userPrompt.length,
+            attempts: diagAttempts,
+          };
+
+          await DailyUsageLedger.recordInference({
+            provider: "kashfara-engine",
+            model: safeLabel,
+            shared_quota_pool: GeminiProvider.poolId,
+            task: params.task,
+            document_id: params.documentId,
+            pages_count: pages,
+            input_tokens: res.input_tokens,
+            output_tokens: res.output_tokens,
+            latency_ms: res.latency_ms,
+            success: true,
+            rate_limited: false,
+          });
+
+          return {
+            parsed,
+            raw_text: res.content,
+            provider: "Kashfara Vision",
+            model: "Kashfara Reasoning Core",
+            input_tokens: res.input_tokens,
+            output_tokens: res.output_tokens,
+            latency_ms: res.latency_ms,
+            attempts,
+            diagnostics,
+          };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          diagAttempts.push({ model: safeLabel, ms: Date.now() - attemptStart, ok: false, error: msg });
+          failureNotes.push(msg);
+          if (err instanceof ProviderRequestError && err.fatal) {
+            break;
+          }
+        }
+      }
+    }
+
     const diagnostics: EngineDiagnostics = {
       model: null,
       total_ms: Date.now() - startedAt,
@@ -310,7 +297,7 @@ export const InferenceOrchestrator = {
     await DailyUsageLedger.recordInference({
       provider: "kashfara-engine",
       model: "kashfara-multimodal",
-      shared_quota_pool: GeminiProvider.poolId,
+      shared_quota_pool: "kashfara-primary-core",
       task: params.task,
       document_id: params.documentId,
       pages_count: pages,
@@ -322,7 +309,7 @@ export const InferenceOrchestrator = {
       error_message: failureNotes.join(" | ").slice(0, 500),
     });
 
-    console.error(`[Kashfara] task ${params.task} failed:`, failureNotes);
+    console.error(`[KASHFARA] task ${params.task} failed:`, failureNotes);
     throw new NoEligibleProviderError(
       `Kashfara engine could not complete "${params.task}". ${failureNotes[failureNotes.length - 1] ?? ""}`.trim(),
       failureNotes,

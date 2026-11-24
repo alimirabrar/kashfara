@@ -287,6 +287,20 @@ export interface DocumentIntelligence {
   data: Record<string, unknown> | null;
   english_translation?: string | null;
   key_points?: string[];
+  entities?: {
+    people?: string[];
+    organizations?: string[];
+    dates?: string[];
+    monetary_values?: string[];
+    locations?: string[];
+    reference_ids?: string[];
+  };
+  clauses_or_sections?: Array<{
+    heading: string;
+    summary: string;
+    risk_or_note?: string | null;
+  }>;
+  action_items?: string[];
   ats?: AtsResult | null;
   job_description?: string;
 }
