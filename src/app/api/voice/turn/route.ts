@@ -15,7 +15,6 @@ interface VoiceTurnRequest {
 const LIVE_MODELS = [
   "models/gemini-2.5-flash-native-audio-preview-12-2025",
   "models/gemini-live-2.5-flash-native-audio",
-  "models/gemini-2.0-flash-live-001",
 ];
 
 function sanitizeOutput(text: string): string {
@@ -106,7 +105,7 @@ async function runLiveTurn(params: {
           reject(new Error("Voice session timed out"));
         }
       }
-    }, 15000);
+    }, 4500);
 
     const finish = (err?: Error) => {
       if (settled) return;
@@ -266,8 +265,7 @@ async function runRestFallback(params: {
   textInput?: string;
   history?: Array<{ role: "user" | "assistant"; text: string }>;
 }): Promise<{ aiTranscript: string; userTranscript: string }> {
-  const models = await GeminiProvider.getAvailableModels();
-  const model = models[0] || "gemini-2.5-flash";
+  const model = "gemini-2.5-flash";
 
   const contents: Array<{ role: "user" | "model"; parts: Array<Record<string, unknown>> }> = [];
   if (params.history) {
@@ -290,7 +288,7 @@ async function runRestFallback(params: {
       },
     });
     userParts.push({
-      text: "Listen to the user's voice message and respond naturally in 1-3 short spoken sentences.",
+      text: "Respond naturally and concisely to the user's voice message in 1-2 short spoken sentences.",
     });
   } else if (params.textInput) {
     userParts.push({ text: params.textInput });
@@ -310,13 +308,43 @@ async function runRestFallback(params: {
       contents,
       generationConfig: {
         temperature: 0.5,
-        maxOutputTokens: 300,
+        maxOutputTokens: 180,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     }),
   });
 
   if (!res.ok) {
-    throw new Error(`Kashfara Voice engine unavailable (${res.status})`);
+    const models = await GeminiProvider.getAvailableModels();
+    const altModel = models[0] || "gemini-2.5-flash-lite";
+    const altUrl = `${params.baseUrl}/models/${encodeURIComponent(altModel)}:generateContent`;
+    const altRes = await fetch(altUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": params.apiKey,
+      },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: params.systemPrompt }] },
+        contents,
+        generationConfig: {
+          temperature: 0.5,
+          maxOutputTokens: 180,
+        },
+      }),
+    });
+    if (!altRes.ok) {
+      throw new Error(`Kashfara Voice engine unavailable (${altRes.status})`);
+    }
+    const altData = await altRes.json();
+    const altParts = altData?.candidates?.[0]?.content?.parts;
+    const altText = Array.isArray(altParts)
+      ? altParts.map((p: { text?: string }) => p.text || "").join("")
+      : "";
+    return {
+      aiTranscript: sanitizeOutput(altText || "I heard you clearly. Please continue."),
+      userTranscript: params.textInput || "(Voice input)",
+    };
   }
 
   const data = await res.json();

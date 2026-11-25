@@ -190,7 +190,7 @@ export default function VoiceStudioPage() {
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-black hover:bg-[#1D1D1F] text-white text-sm font-semibold shadow-[0_10px_30px_rgba(0,0,0,0.16)] transition-all hover:scale-[1.02]"
               >
                 <Mic className="w-4 h-4" />
-                <span>Try 1-Minute Live Demo</span>
+                <span>Try 5-Minute Live Demo</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <a
@@ -298,7 +298,7 @@ export default function VoiceStudioPage() {
         <section className="py-16 px-4 sm:px-6 bg-[#F5F5F7]">
           <div className="max-w-4xl mx-auto rounded-3xl bg-black text-white p-8 sm:p-12 text-center space-y-5">
             <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight">
-              Try Kashfara Voice Studio Live (1-Minute Preview)
+              Try Kashfara Voice Studio Live (5-Minute Preview)
             </h2>
             <p className="text-sm text-white/70 max-w-xl mx-auto">
               Enter your company name and what your voice AI is for—recruitment, BPO screening, or sales—and talk with your AI agent immediately.

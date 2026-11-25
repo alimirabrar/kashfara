@@ -23,11 +23,11 @@ interface TranscriptEntry {
   text: string;
 }
 
-const SESSION_DURATION_SECONDS = 60;
+const SESSION_DURATION_SECONDS = 300;
 const SPEECH_START_THRESHOLD = 0.018;
 const BARGE_IN_THRESHOLD = 0.055;
-const SILENCE_HANGOVER_MS = 1100;
-const MIN_UTTERANCE_MS = 350;
+const SILENCE_HANGOVER_MS = 650;
+const MIN_UTTERANCE_MS = 250;
 
 function downsampleTo16kPcm(float32Data: Float32Array, inputSampleRate: number): Int16Array {
   const targetRate = 16000;
@@ -466,7 +466,9 @@ export default function VoiceStudioDemo() {
     await sendTurn({ textInput: text });
   };
 
-  const formattedTimer = `00:${String(secondsLeft).padStart(2, "0")}`;
+  const mins = Math.floor(secondsLeft / 60);
+  const secs = secondsLeft % 60;
+  const formattedTimer = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 
   // 5 animated round dots (Gemini Live / ChatGPT Live style)
   const dots = [
@@ -517,13 +519,13 @@ export default function VoiceStudioDemo() {
             <div className="space-y-2 text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F5F5F7] text-[11px] font-mono uppercase tracking-widest text-black">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>1-Minute Hands-Free Live Voice Preview</span>
+                <span>5-Minute Hands-Free Live Voice Preview</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-black">
                 Configure Your Voice Studio
               </h1>
               <p className="text-sm text-[#6E6E73]">
-                Tell us your company name and what your voice AI is for in plain language. We&apos;ll request microphone access and start your live 1-minute call.
+                Tell us your company name and what your voice AI is for in plain language. We&apos;ll request microphone access and start your live 5-minute call.
               </p>
             </div>
 
@@ -791,13 +793,13 @@ export default function VoiceStudioDemo() {
             </div>
             <div className="space-y-2">
               <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
-                1-MINUTE PREVIEW COMPLETE
+                5-MINUTE PREVIEW COMPLETE
               </div>
               <h2 className="text-2xl sm:text-3xl font-semibold text-black">
                 Ready to Deploy On-Premise Forever?
               </h2>
               <p className="text-sm text-[#6E6E73] leading-relaxed">
-                Your 1-minute live preview for <strong className="text-black">{companyName}</strong> has automatically ended. For full enterprise deployment, unlimited voice minutes, and zero vendor lock-in, mail us at{" "}
+                Your 5-minute live preview for <strong className="text-black">{companyName}</strong> has automatically ended. For full enterprise deployment, unlimited voice minutes, and zero vendor lock-in, mail us at{" "}
                 <a href="mailto:enquiry@kashfara.com" className="text-black font-semibold underline">
                   enquiry@kashfara.com
                 </a>
