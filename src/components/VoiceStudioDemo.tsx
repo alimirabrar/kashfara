@@ -24,10 +24,13 @@ interface TranscriptEntry {
 }
 
 const SESSION_DURATION_SECONDS = 300;
-const SPEECH_START_THRESHOLD = 0.018;
-const BARGE_IN_THRESHOLD = 0.055;
-const SILENCE_HANGOVER_MS = 650;
-const MIN_UTTERANCE_MS = 250;
+const BASE_SPEECH_THRESHOLD = 0.045;
+const BARGE_IN_THRESHOLD = 0.14;
+const CONSECUTIVE_SPEECH_FRAMES = 3;
+const BARGE_IN_FRAMES = 4;
+const SILENCE_HANGOVER_MS = 750;
+const MIN_UTTERANCE_MS = 500;
+const POST_AI_COOLDOWN_MS = 450;
 
 function downsampleTo16kPcm(float32Data: Float32Array, inputSampleRate: number): Int16Array {
   const targetRate = 16000;
@@ -99,7 +102,10 @@ export default function VoiceStudioDemo() {
 
   // Continuous VAD buffers
   const isSpeakingRef = useRef(false);
-  const speechStartTimeRef = useRef(0);
+  const consecutiveSpeechFramesRef = useRef(0);
+  const noiseFloorRef = useRef(0.01);
+  const peakUtteranceRmsRef = useRef(0);
+  const aiEndedAtRef = useRef(0);
   const lastVoiceTimeRef = useRef(0);
   const utteranceChunksRef = useRef<Float32Array[]>([]);
   const preRollChunksRef = useRef<Float32Array[]>([]);
@@ -147,6 +153,8 @@ export default function VoiceStudioDemo() {
       streamRef.current = null;
     }
     isSpeakingRef.current = false;
+    consecutiveSpeechFramesRef.current = 0;
+    peakUtteranceRmsRef.current = 0;
     utteranceChunksRef.current = [];
     preRollChunksRef.current = [];
     setAudioLevel(0);
@@ -199,11 +207,13 @@ export default function VoiceStudioDemo() {
         const audio = new Audio(`data:${data.mimeType};base64,${data.audioBase64}`);
         activeAudioRef.current = audio;
         audio.onended = () => {
+          aiEndedAtRef.current = Date.now();
           if (!sessionEndedRef.current && voiceStateRef.current === "speaking") {
             setSyncedVoiceState("idle");
           }
         };
         audio.onerror = () => {
+          aiEndedAtRef.current = Date.now();
           if (!sessionEndedRef.current && voiceStateRef.current === "speaking") {
             setSyncedVoiceState("idle");
           }
@@ -221,11 +231,13 @@ export default function VoiceStudioDemo() {
         const utter = new SpeechSynthesisUtterance(data.aiTranscript);
         utter.rate = 1.02;
         utter.onend = () => {
+          aiEndedAtRef.current = Date.now();
           if (!sessionEndedRef.current && voiceStateRef.current === "speaking") {
             setSyncedVoiceState("idle");
           }
         };
         utter.onerror = () => {
+          aiEndedAtRef.current = Date.now();
           if (!sessionEndedRef.current && voiceStateRef.current === "speaking") {
             setSyncedVoiceState("idle");
           }
@@ -305,11 +317,17 @@ export default function VoiceStudioDemo() {
   const flushUtterance = useCallback(() => {
     const chunks = utteranceChunksRef.current;
     const sampleRate = inputSampleRateRef.current;
+    const peakRms = peakUtteranceRmsRef.current;
     utteranceChunksRef.current = [];
     isSpeakingRef.current = false;
+    consecutiveSpeechFramesRef.current = 0;
+    peakUtteranceRmsRef.current = 0;
 
     const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
-    if (totalLen < (sampleRate * MIN_UTTERANCE_MS) / 1000) {
+    if (
+      totalLen < (sampleRate * MIN_UTTERANCE_MS) / 1000 ||
+      peakRms < BASE_SPEECH_THRESHOLD * 1.15
+    ) {
       if (voiceStateRef.current === "listening") {
         setSyncedVoiceState("idle");
       }
@@ -375,7 +393,19 @@ export default function VoiceStudioDemo() {
         sum += copy[i] * copy[i];
       }
       const rms = Math.sqrt(sum / copy.length);
-      setAudioLevel(Math.min(1, rms * 6));
+      setAudioLevel(Math.min(1, rms * 5));
+
+      const now = Date.now();
+
+      // Ignore speaker tail/echo right after AI finishes speaking or while thinking
+      if (
+        isSendingRef.current ||
+        voiceStateRef.current === "thinking" ||
+        now - aiEndedAtRef.current < POST_AI_COOLDOWN_MS
+      ) {
+        consecutiveSpeechFramesRef.current = 0;
+        return;
+      }
 
       // Keep short pre-roll (~250ms) so start of words isn't clipped
       preRollChunksRef.current.push(copy);
@@ -383,28 +413,44 @@ export default function VoiceStudioDemo() {
         preRollChunksRef.current.shift();
       }
 
-      const now = Date.now();
-      const threshold =
-        voiceStateRef.current === "speaking" ? BARGE_IN_THRESHOLD : SPEECH_START_THRESHOLD;
+      const isAiSpeaking = voiceStateRef.current === "speaking";
+      const adaptiveThreshold = Math.max(BASE_SPEECH_THRESHOLD, noiseFloorRef.current * 2.8);
+      const threshold = isAiSpeaking ? BARGE_IN_THRESHOLD : adaptiveThreshold;
+      const requiredFrames = isAiSpeaking ? BARGE_IN_FRAMES : CONSECUTIVE_SPEECH_FRAMES;
 
-      if (rms > threshold && !isSendingRef.current) {
+      if (!isSpeakingRef.current && !isAiSpeaking && rms < adaptiveThreshold) {
+        // Slowly adapt to ambient room noise floor
+        noiseFloorRef.current = noiseFloorRef.current * 0.95 + rms * 0.05;
+      }
+
+      if (rms > threshold) {
+        consecutiveSpeechFramesRef.current += 1;
+        if (rms > peakUtteranceRmsRef.current) {
+          peakUtteranceRmsRef.current = rms;
+        }
+
         if (!isSpeakingRef.current) {
-          // Barge-in: stop AI speaking immediately if user starts talking
-          if (voiceStateRef.current === "speaking") {
-            stopAiPlayback();
+          if (consecutiveSpeechFramesRef.current >= requiredFrames) {
+            // Confirmed sustained human speech
+            if (isAiSpeaking) {
+              stopAiPlayback();
+            }
+            isSpeakingRef.current = true;
+            utteranceChunksRef.current = [...preRollChunksRef.current];
+            lastVoiceTimeRef.current = now;
+            setSyncedVoiceState("listening");
           }
-          isSpeakingRef.current = true;
-          speechStartTimeRef.current = now;
-          utteranceChunksRef.current = [...preRollChunksRef.current];
-          setSyncedVoiceState("listening");
         } else {
           utteranceChunksRef.current.push(copy);
+          lastVoiceTimeRef.current = now;
         }
-        lastVoiceTimeRef.current = now;
-      } else if (isSpeakingRef.current) {
-        utteranceChunksRef.current.push(copy);
-        if (now - lastVoiceTimeRef.current >= SILENCE_HANGOVER_MS) {
-          flushUtterance();
+      } else {
+        consecutiveSpeechFramesRef.current = 0;
+        if (isSpeakingRef.current) {
+          utteranceChunksRef.current.push(copy);
+          if (now - lastVoiceTimeRef.current >= SILENCE_HANGOVER_MS) {
+            flushUtterance();
+          }
         }
       }
     };
