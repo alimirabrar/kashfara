@@ -597,8 +597,13 @@ export function LandingPage() {
                     ],
                     [
                       "Time to Production & TCO",
-                      "[INSERT BENCHMARK METRIC: engineering months to build & maintain]",
-                      "Day-1 live deployment ([INSERT BENCHMARK METRIC: TCO savings vs. in-house]).",
+                      "3–6+ months of multi-engineer R&D, prompt tuning, and ongoing MLOps maintenance.",
+                      "Day-1 deployment: 4B compact footprint, 9 formats, 5 templates, and <50ms local evidence marking.",
+                    ],
+                    [
+                      "vs. General Foundation LLMs (e.g. Falcon)",
+                      "Raw models lack sparse-PDF OCR, [0..1] coordinate overlays, RTL form digitalisation, and audit provenance.",
+                      "End-to-end Document Intelligence: hybrid OCR + Vision, SourceMatcher verification, ATS, and Grounded Q&A.",
                     ],
                   ].map(([dim, diy, kashfara]) => (
                     <tr key={dim} className="hover:bg-[#F5F5F7]/50 transition-colors">
