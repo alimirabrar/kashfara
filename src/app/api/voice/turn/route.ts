@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getConfig } from "@/lib/config";
 import { GeminiProvider } from "@/services/ai/gemini-provider";
+import { GroqFallback } from "@/services/ai/groq-fallback";
 
 export const maxDuration = 30;
 
@@ -21,10 +22,12 @@ function sanitizeOutput(text: string): string {
   return text
     .replace(/gemini/gi, "Kashfara Voice")
     .replace(/google/gi, "Kashfara")
+    .replace(/groq/gi, "Kashfara")
+    .replace(/llama/gi, "Kashfara")
     .trim();
 }
 
-function pcm16ToWavBase64(pcmBytes: Uint8Array, sampleRate = 24000): string {
+function pcm16ToWavBuffer(pcmBytes: Uint8Array, sampleRate = 24000): Buffer {
   const numChannels = 1;
   const bitsPerSample = 16;
   const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
@@ -36,8 +39,8 @@ function pcm16ToWavBase64(pcmBytes: Uint8Array, sampleRate = 24000): string {
   buffer.writeUInt32LE(36 + dataSize, 4);
   buffer.write("WAVE", 8);
   buffer.write("fmt ", 12);
-  buffer.writeUInt32LE(16, 16); // PCM chunk size
-  buffer.writeUInt16LE(1, 20); // PCM format
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
   buffer.writeUInt16LE(numChannels, 22);
   buffer.writeUInt32LE(sampleRate, 24);
   buffer.writeUInt32LE(byteRate, 28);
@@ -47,14 +50,18 @@ function pcm16ToWavBase64(pcmBytes: Uint8Array, sampleRate = 24000): string {
   buffer.writeUInt32LE(dataSize, 40);
   Buffer.from(pcmBytes).copy(buffer, 44);
 
-  return buffer.toString("base64");
+  return buffer;
+}
+
+function pcm16ToWavBase64(pcmBytes: Uint8Array, sampleRate = 24000): string {
+  return pcm16ToWavBuffer(pcmBytes, sampleRate).toString("base64");
 }
 
 function buildSystemPrompt(companyName: string, useCase: string): string {
   return [
     `You are Kashfara Voice Studio, an enterprise voice AI assistant deployed for ${companyName}.`,
     `Your configured purpose is: ${useCase}.`,
-    `Speak naturally, concisely, and professionally in 1 to 3 short sentences per turn so the conversation feels like a real-time phone or interview call.`,
+    `Speak naturally, concisely, and professionally in 1 to 2 short sentences per turn so the conversation feels like a real-time phone or interview call.`,
     `If the purpose involves recruitment or candidate screening, ask focused interview questions and subtly evaluate clarity and English communication skills.`,
     `If the purpose involves sales, qualify the caller's needs and guide them helpfully.`,
     `If asked what technology powers you, say you are Kashfara Voice Studio, a low-computing on-premise TTS and STT enterprise voice model.`,
@@ -84,11 +91,27 @@ async function runLiveTurn(params: {
     let userTranscript = "";
     let setupSent = false;
     let turnSent = false;
+    let receivedFirstOutput = false;
     let settled = false;
 
-    const timeout = setTimeout(() => {
+    // Fast 4.5s timeout if handshake/first response stalls
+    const firstByteTimeout = setTimeout(() => {
+      if (!settled && !receivedFirstOutput) {
+        settled = true;
+        try {
+          ws.close();
+        } catch {
+          // ignore
+        }
+        reject(new Error("Voice Live handshake timed out"));
+      }
+    }, 4500);
+
+    // Generous 15s total timeout once streaming has started so audio isn't cut at 5s
+    const totalTimeout = setTimeout(() => {
       if (!settled) {
         settled = true;
+        clearTimeout(firstByteTimeout);
         try {
           ws.close();
         } catch {
@@ -105,12 +128,13 @@ async function runLiveTurn(params: {
           reject(new Error("Voice session timed out"));
         }
       }
-    }, 4500);
+    }, 15000);
 
     const finish = (err?: Error) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timeout);
+      clearTimeout(firstByteTimeout);
+      clearTimeout(totalTimeout);
       try {
         ws.close();
       } catch {
@@ -131,20 +155,21 @@ async function runLiveTurn(params: {
     ws.onopen = () => {
       if (setupSent) return;
       setupSent = true;
-      const setupMsg = {
-        setup: {
-          model: params.model,
-          generationConfig: {
-            responseModalities: ["AUDIO"],
+      ws.send(
+        JSON.stringify({
+          setup: {
+            model: params.model,
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+            },
+            systemInstruction: {
+              parts: [{ text: params.systemPrompt }],
+            },
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
           },
-          systemInstruction: {
-            parts: [{ text: params.systemPrompt }],
-          },
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
-        },
-      };
-      ws.send(JSON.stringify(setupMsg));
+        })
+      );
     };
 
     ws.onmessage = async (event) => {
@@ -160,7 +185,6 @@ async function runLiveTurn(params: {
         if (msg.setupComplete && !turnSent) {
           turnSent = true;
 
-          // Replay brief prior context if any
           if (params.history && params.history.length > 0) {
             const turns = params.history.slice(-6).map((h) => ({
               role: h.role === "assistant" ? "model" : "user",
@@ -177,7 +201,6 @@ async function runLiveTurn(params: {
           }
 
           if (params.audioBase64) {
-            // Send audio in chunks of ~32KB base64 for smooth streaming
             const chunkSize = 32768;
             for (let i = 0; i < params.audioBase64.length; i += chunkSize) {
               const slice = params.audioBase64.slice(i, i + chunkSize);
@@ -220,14 +243,20 @@ async function runLiveTurn(params: {
             userTranscript += sc.inputTranscription.text;
           }
           if (sc.outputTranscription?.text) {
+            receivedFirstOutput = true;
+            clearTimeout(firstByteTimeout);
             aiTranscript += sc.outputTranscription.text;
           }
           if (sc.modelTurn?.parts && Array.isArray(sc.modelTurn.parts)) {
             for (const part of sc.modelTurn.parts) {
               if (part.inlineData?.data) {
+                receivedFirstOutput = true;
+                clearTimeout(firstByteTimeout);
                 pcmChunks.push(Buffer.from(part.inlineData.data, "base64"));
               }
               if (part.text) {
+                receivedFirstOutput = true;
+                clearTimeout(firstByteTimeout);
                 aiTranscript += part.text;
               }
             }
@@ -237,7 +266,7 @@ async function runLiveTurn(params: {
           }
         }
       } catch {
-        // ignore parse issues on partial frames
+        // ignore partial frame parse errors
       }
     };
 
@@ -265,8 +294,6 @@ async function runRestFallback(params: {
   textInput?: string;
   history?: Array<{ role: "user" | "assistant"; text: string }>;
 }): Promise<{ aiTranscript: string; userTranscript: string }> {
-  const model = "gemini-2.5-flash";
-
   const contents: Array<{ role: "user" | "model"; parts: Array<Record<string, unknown>> }> = [];
   if (params.history) {
     for (const h of params.history.slice(-6)) {
@@ -296,29 +323,50 @@ async function runRestFallback(params: {
 
   contents.push({ role: "user", parts: userParts });
 
-  const url = `${params.baseUrl}/models/${encodeURIComponent(model)}:generateContent`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": params.apiKey,
-    },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: params.systemPrompt }] },
-      contents,
-      generationConfig: {
-        temperature: 0.5,
-        maxOutputTokens: 180,
-        thinkingConfig: { thinkingBudget: 0 },
-      },
-    }),
-  });
+  const candidateModels = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  for (const model of candidateModels) {
+    try {
+      const url = `${params.baseUrl}/models/${encodeURIComponent(model)}:generateContent`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": params.apiKey,
+        },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: params.systemPrompt }] },
+          contents,
+          generationConfig: {
+            temperature: 0.5,
+            maxOutputTokens: 180,
+          },
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
 
-  if (!res.ok) {
-    const models = await GeminiProvider.getAvailableModels();
-    const altModel = models[0] || "gemini-2.5-flash-lite";
-    const altUrl = `${params.baseUrl}/models/${encodeURIComponent(altModel)}:generateContent`;
-    const altRes = await fetch(altUrl, {
+      if (res.ok) {
+        const data = await res.json();
+        const parts = data?.candidates?.[0]?.content?.parts;
+        const text = Array.isArray(parts)
+          ? parts.map((p: { text?: string }) => p.text || "").join("")
+          : "";
+        if (text.trim()) {
+          return {
+            aiTranscript: sanitizeOutput(text),
+            userTranscript: params.textInput || "(Voice input)",
+          };
+        }
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+
+  // Last-resort discovered model
+  const models = await GeminiProvider.getAvailableModels();
+  for (const model of models.slice(0, 2)) {
+    const url = `${params.baseUrl}/models/${encodeURIComponent(model)}:generateContent`;
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -327,35 +375,91 @@ async function runRestFallback(params: {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: params.systemPrompt }] },
         contents,
-        generationConfig: {
-          temperature: 0.5,
-          maxOutputTokens: 180,
-        },
+        generationConfig: { temperature: 0.5, maxOutputTokens: 180 },
       }),
+      signal: AbortSignal.timeout(10000),
     });
-    if (!altRes.ok) {
-      throw new Error(`Kashfara Voice engine unavailable (${altRes.status})`);
+    if (res.ok) {
+      const data = await res.json();
+      const parts = data?.candidates?.[0]?.content?.parts;
+      const text = Array.isArray(parts)
+        ? parts.map((p: { text?: string }) => p.text || "").join("")
+        : "";
+      if (text.trim()) {
+        return {
+          aiTranscript: sanitizeOutput(text),
+          userTranscript: params.textInput || "(Voice input)",
+        };
+      }
     }
-    const altData = await altRes.json();
-    const altParts = altData?.candidates?.[0]?.content?.parts;
-    const altText = Array.isArray(altParts)
-      ? altParts.map((p: { text?: string }) => p.text || "").join("")
-      : "";
+  }
+
+  throw new Error("Kashfara Voice REST engine unavailable");
+}
+
+async function runGroqVoiceFallback(params: {
+  systemPrompt: string;
+  audioBase64?: string;
+  textInput?: string;
+  history?: Array<{ role: "user" | "assistant"; text: string }>;
+}): Promise<{ aiTranscript: string; userTranscript: string }> {
+  const cfg = getConfig();
+  if (!cfg.groqApiKey) {
+    throw new Error("Secondary voice engine not configured");
+  }
+
+  let userText = params.textInput || "";
+
+  if (params.audioBase64 && !userText) {
+    const pcmBytes = Buffer.from(params.audioBase64, "base64");
+    const wavBuffer = pcm16ToWavBuffer(pcmBytes, 16000);
+    const form = new FormData();
+    form.append(
+      "file",
+      new Blob([new Uint8Array(wavBuffer)], { type: "audio/wav" }),
+      "audio.wav"
+    );
+    form.append("model", "whisper-large-v3-turbo");
+
+    const sttRes = await fetch(`${cfg.groqBaseUrl}/audio/transcriptions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${cfg.groqApiKey}` },
+      body: form,
+      signal: AbortSignal.timeout(10000),
+    });
+    if (sttRes.ok) {
+      const sttData = (await sttRes.json()) as { text?: string };
+      userText = (sttData.text || "").trim();
+    }
+  }
+
+  if (!userText) {
     return {
-      aiTranscript: sanitizeOutput(altText || "I heard you clearly. Please continue."),
-      userTranscript: params.textInput || "(Voice input)",
+      aiTranscript: "I didn't catch that clearly. Could you please repeat?",
+      userTranscript: "(Audio unclear)",
     };
   }
 
-  const data = await res.json();
-  const parts = data?.candidates?.[0]?.content?.parts;
-  const text = Array.isArray(parts)
-    ? parts.map((p: { text?: string }) => p.text || "").join("")
-    : "";
+  const messages = [
+    { role: "system" as const, content: params.systemPrompt },
+    ...(params.history || []).slice(-6).map((h) => ({
+      role: h.role,
+      content: h.text,
+    })),
+    { role: "user" as const, content: userText },
+  ];
+
+  const chatRes = await GroqFallback.chatCompletion({
+    model: "llama-3.3-70b-versatile",
+    messages,
+    temperature: 0.5,
+    max_tokens: 180,
+    timeoutMs: 10000,
+  });
 
   return {
-    aiTranscript: sanitizeOutput(text || "I heard you clearly. Please continue."),
-    userTranscript: params.textInput || "(Voice input)",
+    aiTranscript: sanitizeOutput(chatRes.content || "Please continue."),
+    userTranscript: sanitizeOutput(userText),
   };
 }
 
@@ -373,7 +477,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cfg = getConfig();
-    if (!cfg.geminiApiKey) {
+    if (!cfg.geminiApiKey && !cfg.groqApiKey) {
       return NextResponse.json(
         { error: "Kashfara Voice engine is not configured." },
         { status: 503 }
@@ -383,35 +487,58 @@ export async function POST(req: NextRequest) {
     const systemPrompt = buildSystemPrompt(companyName, useCase);
 
     // 1. Primary: Live bidirectional audio session on server
-    for (const model of LIVE_MODELS) {
+    if (cfg.geminiApiKey) {
+      for (const model of LIVE_MODELS) {
+        try {
+          const liveRes = await runLiveTurn({
+            apiKey: cfg.geminiApiKey,
+            model,
+            systemPrompt,
+            audioBase64: body.audioBase64,
+            textInput: body.textInput,
+            history: body.history,
+          });
+          if (liveRes.audioBase64 || liveRes.aiTranscript) {
+            return NextResponse.json({
+              audioBase64: liveRes.audioBase64,
+              mimeType: liveRes.audioBase64 ? "audio/wav" : null,
+              aiTranscript: liveRes.aiTranscript || "Response ready.",
+              userTranscript: liveRes.userTranscript || body.textInput || "(Voice message)",
+              useBrowserTts: !liveRes.audioBase64,
+              engine: "kashfara-voice-1.0",
+            });
+          }
+        } catch {
+          // Try next live model or fall back to REST audio
+        }
+      }
+
+      // 2. Fallback: Multimodal REST audio -> text + client TTS
       try {
-        const liveRes = await runLiveTurn({
+        const restRes = await runRestFallback({
           apiKey: cfg.geminiApiKey,
-          model,
+          baseUrl: cfg.geminiBaseUrl,
           systemPrompt,
           audioBase64: body.audioBase64,
           textInput: body.textInput,
           history: body.history,
         });
-        if (liveRes.audioBase64 || liveRes.aiTranscript) {
-          return NextResponse.json({
-            audioBase64: liveRes.audioBase64,
-            mimeType: liveRes.audioBase64 ? "audio/wav" : null,
-            aiTranscript: liveRes.aiTranscript || "Response ready.",
-            userTranscript: liveRes.userTranscript || body.textInput || "(Voice message)",
-            useBrowserTts: !liveRes.audioBase64,
-            engine: "kashfara-voice-1.0",
-          });
-        }
+
+        return NextResponse.json({
+          audioBase64: null,
+          mimeType: null,
+          aiTranscript: restRes.aiTranscript,
+          userTranscript: restRes.userTranscript,
+          useBrowserTts: true,
+          engine: "kashfara-voice-1.0",
+        });
       } catch {
-        // Try next live model or fall back to REST audio
+        // Fall through to secondary STT+LLM engine
       }
     }
 
-    // 2. Fallback: Multimodal REST audio -> text + client TTS
-    const restRes = await runRestFallback({
-      apiKey: cfg.geminiApiKey,
-      baseUrl: cfg.geminiBaseUrl,
+    // 3. Secondary Fallback: Whisper STT + Fast Chat
+    const groqRes = await runGroqVoiceFallback({
       systemPrompt,
       audioBase64: body.audioBase64,
       textInput: body.textInput,
@@ -421,8 +548,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       audioBase64: null,
       mimeType: null,
-      aiTranscript: restRes.aiTranscript,
-      userTranscript: restRes.userTranscript,
+      aiTranscript: groqRes.aiTranscript,
+      userTranscript: groqRes.userTranscript,
       useBrowserTts: true,
       engine: "kashfara-voice-1.0",
     });

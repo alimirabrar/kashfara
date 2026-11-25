@@ -25,12 +25,10 @@ interface TranscriptEntry {
 
 const SESSION_DURATION_SECONDS = 300;
 const BASE_SPEECH_THRESHOLD = 0.045;
-const BARGE_IN_THRESHOLD = 0.14;
 const CONSECUTIVE_SPEECH_FRAMES = 3;
-const BARGE_IN_FRAMES = 4;
 const SILENCE_HANGOVER_MS = 750;
 const MIN_UTTERANCE_MS = 500;
-const POST_AI_COOLDOWN_MS = 450;
+const POST_AI_COOLDOWN_MS = 300;
 
 function downsampleTo16kPcm(float32Data: Float32Array, inputSampleRate: number): Int16Array {
   const targetRate = 16000;
@@ -397,9 +395,11 @@ export default function VoiceStudioDemo() {
 
       const now = Date.now();
 
-      // Ignore speaker tail/echo right after AI finishes speaking or while thinking
+      // Ignore mic input while AI is speaking, thinking, or during brief post-speech cooldown
+      // so speaker echo never cuts off the AI mid-sentence.
       if (
         isSendingRef.current ||
+        voiceStateRef.current === "speaking" ||
         voiceStateRef.current === "thinking" ||
         now - aiEndedAtRef.current < POST_AI_COOLDOWN_MS
       ) {
@@ -413,28 +413,21 @@ export default function VoiceStudioDemo() {
         preRollChunksRef.current.shift();
       }
 
-      const isAiSpeaking = voiceStateRef.current === "speaking";
       const adaptiveThreshold = Math.max(BASE_SPEECH_THRESHOLD, noiseFloorRef.current * 2.8);
-      const threshold = isAiSpeaking ? BARGE_IN_THRESHOLD : adaptiveThreshold;
-      const requiredFrames = isAiSpeaking ? BARGE_IN_FRAMES : CONSECUTIVE_SPEECH_FRAMES;
 
-      if (!isSpeakingRef.current && !isAiSpeaking && rms < adaptiveThreshold) {
+      if (!isSpeakingRef.current && rms < adaptiveThreshold) {
         // Slowly adapt to ambient room noise floor
         noiseFloorRef.current = noiseFloorRef.current * 0.95 + rms * 0.05;
       }
 
-      if (rms > threshold) {
+      if (rms > adaptiveThreshold) {
         consecutiveSpeechFramesRef.current += 1;
         if (rms > peakUtteranceRmsRef.current) {
           peakUtteranceRmsRef.current = rms;
         }
 
         if (!isSpeakingRef.current) {
-          if (consecutiveSpeechFramesRef.current >= requiredFrames) {
-            // Confirmed sustained human speech
-            if (isAiSpeaking) {
-              stopAiPlayback();
-            }
+          if (consecutiveSpeechFramesRef.current >= CONSECUTIVE_SPEECH_FRAMES) {
             isSpeakingRef.current = true;
             utteranceChunksRef.current = [...preRollChunksRef.current];
             lastVoiceTimeRef.current = now;
@@ -753,7 +746,7 @@ export default function VoiceStudioDemo() {
                   : voiceState === "thinking"
                   ? "Kashfara Voice processing..."
                   : voiceState === "speaking"
-                  ? "AI Speaking (speak anytime to interrupt)"
+                  ? "AI Speaking..."
                   : "Live · Just speak naturally"}
               </div>
             </div>
