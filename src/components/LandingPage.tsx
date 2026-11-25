@@ -210,29 +210,50 @@ export function LandingPage() {
       <header className="sticky top-0 z-50 apple-glass">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center shadow-sm">
-              <ScanSearch className="w-4 h-4" />
-            </div>
+            <svg
+              width="30"
+              height="30"
+              viewBox="0 0 32 32"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+              className="w-7 h-7 shrink-0"
+            >
+              <rect
+                x="2"
+                y="2"
+                width="28"
+                height="28"
+                rx="8"
+                stroke="#000000"
+                strokeWidth="2"
+              />
+              <path
+                d="M11 9.5V22.5M11 16L20.5 9.5M14.8 13.5L21 22.5"
+                stroke="#000000"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle cx="22.5" cy="9.5" r="1.75" fill="#000000" />
+            </svg>
             <div className="leading-tight">
               <span className="text-sm font-semibold tracking-tight text-black">
                 KASHFARA
               </span>
-              <span className="text-sm font-light tracking-tight text-[#6E6E73] ml-1">
-                VISION
-              </span>
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-medium text-[#6E6E73]">
-            <a href="#architecture" className="hover:text-black transition-colors">
-              OCR + Vision
-            </a>
-            <a href="#showcase" className="hover:text-black transition-colors">
-              Proof of Evidence
-            </a>
-            <a href="#use-cases" className="hover:text-black transition-colors">
-              Middle East Use Cases
-            </a>
+          <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-[#6E6E73]">
+            <Link href="/demo" className="hover:text-black transition-colors">
+              Kashfara Vision
+            </Link>
+            <Link href="/spreadsheet" className="hover:text-black transition-colors">
+              Kashfara Spreadsheet
+            </Link>
+            <Link href="/voice-studio" className="hover:text-black transition-colors">
+              Kashfara Voice Studio
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -264,27 +285,27 @@ export function LandingPage() {
               exit={{ opacity: 0, height: 0 }}
               className="md:hidden border-t border-black/10 bg-white/95 backdrop-blur-xl px-6 py-4 space-y-3 text-sm font-medium"
             >
-              <a
-                href="#architecture"
+              <Link
+                href="/demo"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block py-1 text-[#1D1D1F]"
               >
-                OCR + Vision
-              </a>
-              <a
-                href="#showcase"
+                Kashfara Vision
+              </Link>
+              <Link
+                href="/spreadsheet"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block py-1 text-[#1D1D1F]"
               >
-                Proof of Evidence
-              </a>
-              <a
-                href="#use-cases"
+                Kashfara Spreadsheet
+              </Link>
+              <Link
+                href="/voice-studio"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block py-1 text-[#1D1D1F]"
               >
-                Middle East Use Cases
-              </a>
+                Kashfara Voice Studio
+              </Link>
             </motion.div>
           )}
         </AnimatePresence>
