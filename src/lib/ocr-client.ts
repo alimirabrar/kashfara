@@ -23,7 +23,7 @@ export async function runOcrOnPageImage(
     for (const block of result.data.blocks || []) {
       for (const para of block.paragraphs || []) {
         for (const line of para.lines || []) {
-          const text = (line.text || "").trim();
+          const text = (line.text || "").replace(/\s+/g, " ").trim();
           if (!text) continue;
           const x = Math.max(0, Math.min(1, line.bbox.x0 / pw));
           const y = Math.max(0, Math.min(1, line.bbox.y0 / ph));
@@ -31,7 +31,10 @@ export async function runOcrOnPageImage(
           const h = Math.max(0.01, Math.min(1 - y, (line.bbox.y1 - line.bbox.y0) / ph));
           ocrBlocks.push({
             text,
-            confidence: typeof line.confidence === "number" ? Number((line.confidence / 100).toFixed(2)) : undefined,
+            confidence:
+              typeof line.confidence === "number"
+                ? Number((line.confidence / 100).toFixed(2))
+                : undefined,
             bbox: {
               x: Number(x.toFixed(4)),
               y: Number(y.toFixed(4)),
@@ -43,8 +46,13 @@ export async function runOcrOnPageImage(
       }
     }
 
+    const fullText =
+      ocrBlocks.length > 0
+        ? ocrBlocks.map((b) => b.text).join("\n")
+        : (result.data.text || "").trim();
+
     return {
-      text_content: (result.data.text || "").trim(),
+      text_content: fullText,
       ocr_blocks: ocrBlocks,
     };
   } finally {

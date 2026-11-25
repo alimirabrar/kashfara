@@ -80,18 +80,22 @@ export function UploadDropzone({
 
       const clientDoc = upJson.document as DocumentRecord;
 
-      // Step 2: OCR on image / scanned pages lacking native text
+      // Step 2: Run Kashfara OCR on any image page OR sparse PDF page (<250 chars or <10 lines)
       const tOcr = Date.now();
       let ranOcr = false;
       for (let i = 0; i < clientDoc.pages.length; i++) {
         const page = clientDoc.pages[i];
-        const hasEnoughText = Boolean(page.text_content && page.text_content.trim().length >= 25);
-        if (page.image_url && !hasEnoughText) {
+        const existingLen = (page.text_content || "").trim().length;
+        const existingBlocks = page.ocr_blocks?.length || 0;
+        const hasRichText = existingLen >= 250 && existingBlocks >= 10;
+        if (page.image_url && !hasRichText) {
           ranOcr = true;
           setStageText(`Running Arabic & English OCR (Page ${page.page_number}/${clientDoc.pages.length})...`);
           const ocr = await runOcrOnPageImage(page.image_url, page.width, page.height);
-          page.text_content = ocr.text_content;
-          page.ocr_blocks = ocr.ocr_blocks;
+          if (ocr.text_content.length > existingLen) {
+            page.text_content = ocr.text_content;
+            page.ocr_blocks = ocr.ocr_blocks;
+          }
         }
       }
       pipeline.push({

@@ -44,8 +44,19 @@ export async function POST(req: Request) {
     });
 
     const verifyStart = Date.now();
+    const priorInstantFields = doc.fields || [];
     const validatedFields = EvidenceValidator.validateFields(analysis.fields, doc.pages);
-    doc.fields = validatedFields.length > 0 ? validatedFields : doc.fields;
+    if (validatedFields.length > 0) {
+      const seenTexts = new Set(
+        validatedFields.map((f) => (f.source_text || String(f.value || "")).toLowerCase().trim())
+      );
+      const extraInstant = priorInstantFields.filter(
+        (f) => !seenTexts.has((f.source_text || String(f.value || "")).toLowerCase().trim())
+      );
+      doc.fields = [...validatedFields, ...extraInstant];
+    } else {
+      doc.fields = priorInstantFields;
+    }
     doc.tables = EvidenceValidator.validateTables(analysis.tables, doc.pages);
     doc.processing_logs.push({
       step: "Evidence Verification",

@@ -113,6 +113,16 @@ export function TemplatePanels({ doc, onDocumentUpdated }: TemplatePanelsProps) 
         )}
       </div>
 
+      {/* Executive Summary */}
+      {doc.classification?.summary && (
+        <div className="p-3.5 rounded-2xl bg-white border border-black/10 space-y-1.5">
+          <div className="text-xs font-semibold text-black">Document Summary</div>
+          <p className="text-xs text-[#1D1D1F] leading-relaxed" dir="auto">
+            {doc.classification.summary}
+          </p>
+        </div>
+      )}
+
       {/* English Translation (if Arabic or non-English) */}
       {intel.english_translation && (
         <div className="p-3.5 rounded-2xl bg-white border border-black/10 space-y-1.5">

@@ -3,8 +3,8 @@
 import type { DocumentRecord, ExtractedField } from "@/types/kashfara";
 
 /**
- * Ultra-fast (<20ms) local heuristic extractor that turns OCR lines / parsed text
- * into immediate proof-of-evidence fields with real bounding boxes before Gemini runs.
+ * Fast local extractor that turns OCR lines / parsed text into immediate
+ * proof-of-evidence fields with real bounding boxes across the entire document.
  */
 export function extractInstantFields(doc: DocumentRecord): ExtractedField[] {
   const fields: ExtractedField[] = [];
@@ -18,12 +18,13 @@ export function extractInstantFields(doc: DocumentRecord): ExtractedField[] {
     bbox: ExtractedField["bounding_box"],
     dataType: ExtractedField["data_type"] = "string"
   ) => {
-    const normKey = label
-      .toLowerCase()
-      .replace(/[^a-z0-9\u0600-\u06FF]+/g, "_")
-      .replace(/^_|_$/g, "") || `field_${fields.length + 1}`;
-    const dedupeKey = `${pageNum}:${normKey}:${value}`;
-    if (seen.has(dedupeKey) || fields.length >= 30) return;
+    const normKey =
+      label
+        .toLowerCase()
+        .replace(/[^a-z0-9\u0600-\u06FF]+/g, "_")
+        .replace(/^_|_$/g, "") || `field_${fields.length + 1}`;
+    const dedupeKey = `${pageNum}:${normKey}:${value.slice(0, 60)}`;
+    if (seen.has(dedupeKey) || fields.length >= 60) return;
     seen.add(dedupeKey);
 
     fields.push({
@@ -39,7 +40,7 @@ export function extractInstantFields(doc: DocumentRecord): ExtractedField[] {
       coordinate_source: bbox ? "source_matched" : "none",
       confidence: null,
       verification_status: bbox ? "VERIFIED" : "NEEDS_REVIEW",
-      verification_notes: "Instant OCR/Parser extraction",
+      verification_notes: "OCR/Parser extracted & anchored",
     });
   };
 
@@ -51,12 +52,25 @@ export function extractInstantFields(doc: DocumentRecord): ExtractedField[] {
             .split(/\r?\n/)
             .map((t) => ({ text: t.trim(), bbox: null }));
 
+    let currentSection = "Document Line";
+
     for (const block of blocks) {
       const line = block.text.trim();
-      if (!line || line.length < 3) continue;
+      if (!line || line.length < 2) continue;
+
+      // Detect uppercase/short section headings (e.g. PROFESSIONAL SUMMARY, SKILLS, EXPERIENCE)
+      if (
+        line.length <= 42 &&
+        !/[:：]/.test(line) &&
+        (line === line.toUpperCase() || /^(summary|skills|experience|education|projects|certifications|total|invoice|bill to|ship to)/i.test(line))
+      ) {
+        currentSection = line;
+        pushField("Section", line, page.page_number, line, block.bbox, "string");
+        continue;
+      }
 
       // 1. Key: Value pattern (supports English ":" and Arabic "：")
-      const kvMatch = line.match(/^([^:：]{2,40})[:：]\s*(.{1,120})$/);
+      const kvMatch = line.match(/^([^:：]{2,42})[:：]\s*(.{1,160})$/);
       if (kvMatch) {
         const lbl = kvMatch[1].trim();
         const val = kvMatch[2].trim();
@@ -88,6 +102,11 @@ export function extractInstantFields(doc: DocumentRecord): ExtractedField[] {
       const moneyMatch = line.match(/\b(?:AED|SAR|USD|EUR|GBP|QAR|KWD|BHD|OMR)\s*[\d,]+(?:\.\d{2})?\b/i);
       if (moneyMatch) {
         pushField("Monetary Amount", moneyMatch[0], page.page_number, line, block.bbox, "currency");
+      }
+
+      // 6. General content line under current section so every region of the page is marked
+      if (line.length >= 6) {
+        pushField(currentSection, line, page.page_number, line, block.bbox, "string");
       }
     }
   }

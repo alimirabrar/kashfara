@@ -3,8 +3,8 @@
 import type { OcrBlock } from "@/types/kashfara";
 
 /**
- * Renders PDF pages to crisp JPEG File objects AND extracts raw text + normalized
- * bounding boxes per line in the browser using pdfjs-dist.
+ * Renders PDF pages to crisp JPEG File objects AND extracts grouped text lines
+ * + normalized [0..1] bounding boxes in the browser using pdfjs-dist.
  */
 export async function renderPdfPagesToPngFiles(
   file: File,
@@ -29,7 +29,8 @@ export async function renderPdfPagesToPngFiles(
 
   for (let i = 1; i <= pagesToRender; i++) {
     const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 1.4 });
+    // Scale 1.8 gives crisp ~1100-1500px wide images for accurate OCR on small 9-10pt fonts
+    const viewport = page.getViewport({ scale: 1.8 });
     const canvas = document.createElement("canvas");
     canvas.width = Math.floor(viewport.width);
     canvas.height = Math.floor(viewport.height);
@@ -37,7 +38,7 @@ export async function renderPdfPagesToPngFiles(
     if (ctx) {
       await page.render({ canvasContext: ctx, viewport, canvas }).promise;
       const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.85)
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.88)
       );
       if (blob) {
         files.push(new File([blob], `page_${i}.jpg`, { type: "image/jpeg" }));
@@ -50,14 +51,12 @@ export async function renderPdfPagesToPngFiles(
       const pw = Math.max(1, baseViewport.width);
       const ph = Math.max(1, baseViewport.height);
 
-      const blocks: OcrBlock[] = [];
-      const lines: string[] = [];
-
+      // Collect raw spans and group spans on the same horizontal line (within 0.012 y)
+      const rawSpans: Array<{ text: string; x: number; y: number; x2: number; y2: number }> = [];
       for (const item of textContent.items) {
         if (!("str" in item)) continue;
         const str = item.str.trim();
         if (!str) continue;
-        lines.push(str);
 
         const tx = item.transform[4];
         const ty = item.transform[5];
@@ -66,21 +65,39 @@ export async function renderPdfPagesToPngFiles(
 
         const x = Math.max(0, Math.min(1, tx / pw));
         const y = Math.max(0, Math.min(1, 1 - (ty + itemH) / ph));
-        const width = Math.max(0.01, Math.min(1 - x, itemW / pw));
-        const height = Math.max(0.01, Math.min(1 - y, itemH / ph));
-
-        blocks.push({
-          text: str,
-          bbox: {
-            x: Number(x.toFixed(4)),
-            y: Number(y.toFixed(4)),
-            width: Number(width.toFixed(4)),
-            height: Number(height.toFixed(4)),
-          },
-        });
+        const x2 = Math.max(x + 0.005, Math.min(1, x + itemW / pw));
+        const y2 = Math.max(y + 0.005, Math.min(1, y + itemH / ph));
+        rawSpans.push({ text: str, x, y, x2, y2 });
       }
 
-      pageTexts.push(lines.join(" ").replace(/\s+/g, " ").trim());
+      // Sort top-to-bottom, left-to-right
+      rawSpans.sort((a, b) => (Math.abs(a.y - b.y) < 0.01 ? a.x - b.x : a.y - b.y));
+
+      const groupedLines: Array<{ texts: string[]; x: number; y: number; x2: number; y2: number }> = [];
+      for (const sp of rawSpans) {
+        const last = groupedLines[groupedLines.length - 1];
+        if (last && Math.abs(last.y - sp.y) < 0.012) {
+          last.texts.push(sp.text);
+          last.x = Math.min(last.x, sp.x);
+          last.y = Math.min(last.y, sp.y);
+          last.x2 = Math.max(last.x2, sp.x2);
+          last.y2 = Math.max(last.y2, sp.y2);
+        } else {
+          groupedLines.push({ texts: [sp.text], x: sp.x, y: sp.y, x2: sp.x2, y2: sp.y2 });
+        }
+      }
+
+      const blocks: OcrBlock[] = groupedLines.map((gl) => ({
+        text: gl.texts.join(" ").replace(/\s+/g, " ").trim(),
+        bbox: {
+          x: Number(gl.x.toFixed(4)),
+          y: Number(gl.y.toFixed(4)),
+          width: Number(Math.max(0.01, gl.x2 - gl.x).toFixed(4)),
+          height: Number(Math.max(0.01, gl.y2 - gl.y).toFixed(4)),
+        },
+      }));
+
+      pageTexts.push(blocks.map((b) => b.text).join("\n"));
       pageOcrBlocks.push(blocks);
     } catch {
       pageTexts.push("");

@@ -98,7 +98,7 @@ export const DocumentIngestion = {
     const origW = meta.width || 1024;
     const origH = meta.height || 1440;
 
-    const maxDim = 1500;
+    const maxDim = 1800;
     const pipeline =
       origW > maxDim || origH > maxDim
         ? image.resize({ width: maxDim, height: maxDim, fit: "inside", withoutEnlargement: true })
