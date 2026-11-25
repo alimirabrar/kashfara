@@ -130,17 +130,22 @@ const JSON_LD = {
       "@type": "SoftwareApplication",
       name: "KASHFARA VISION",
       applicationCategory: "BusinessApplication",
-      operatingSystem: "Web",
+      operatingSystem: "Web, Linux, On-Premise Air-Gapped",
       url: SITE_URL,
       description:
-        "4-billion-parameter OCR + Vision document intelligence platform for Arabic RTL, English, and bilingual documents. Features proof-of-evidence bounding boxes, table extraction, automatic form digitalisation, and grounded document Q&A.",
+        "4-billion-parameter Arabic LLM and OCR + Vision document intelligence platform for Arabic RTL, English, and bilingual documents. Features sparse-PDF OCR fallback, deterministic bounding-box proof of evidence, 5 smart templates, automatic form digitalisation, grounded document chatbot Q&A, and an air-gapped agentic spreadsheet.",
+      audience: {
+        "@type": "BusinessAudience",
+        audienceType: "Enterprise Finance, Banking, Legal, Logistics, Real Estate, and Healthcare Teams",
+      },
       featureList: [
-        "Arabic RTL and English bilingual OCR + Vision understanding",
-        "Low-compute, high-accuracy hybrid structural parsing",
-        "Normalized bounding-box proof of evidence and visual verification",
-        "Automatic digital form generation with RTL support, JSON, and CSV export",
-        "Document-grounded Q&A with exact page citations",
-        "Supports PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, and XLSX",
+        "Arabic RTL and English bilingual OCR + 4B Vision understanding",
+        "Hybrid sparse-PDF detection with automatic dual-script (eng+ara) OCR fallback",
+        "Deterministic SourceMatcher and [0..1] bounding-box proof-of-evidence verification",
+        "5 smart templates (Resume + ATS Scorer, Invoice, Bank Statement, Contract, Receipt) plus unstructured entity and clause extraction",
+        "Automatic digital form generation with Arabic RTL support, JSON, and CSV export",
+        "Document-grounded chatbot Q&A with clickable page citations",
+        "Air-gapped on-premise deployment with zero external data leakage",
       ],
     },
     {
@@ -148,26 +153,42 @@ const JSON_LD = {
       mainEntity: [
         {
           "@type": "Question",
-          name: "What makes Kashfara Vision different from standard OCR?",
+          name: "How is Kashfara different from building an internal solution with our own engineers?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Kashfara combines fast structural OCR parsing with a 4-billion-parameter multimodal vision model, understanding layout, tables, stamps, signatures, and mixed Arabic-English context together.",
+            text: "Wrapping an OCR library and calling a generic LLM API fails on real-world enterprise documents. Standard PDF parsers silently drop vector-rendered bodies, naive OCR scrambles Arabic RTL tables, and raw LLMs invent bounding boxes. Kashfara ships a production-hardened hybrid parser, sparse-PDF OCR fallback, Arabic diacritic normalization, deterministic SourceMatcher evidence verification, truncated-JSON repair, and multi-engine failover out of the box.",
           },
         },
         {
           "@type": "Question",
-          name: "Does it support Arabic RTL and bilingual documents?",
+          name: "What technical edge cases and production risks does Kashfara solve?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Yes. Kashfara preserves right-to-left Arabic script, English LTR text, and mixed Arabic-English tables in invoices, contracts, leases, and forms.",
+            text: "Kashfara solves partially rasterized PDFs (auto-triggering dual-script Arabic and English OCR when native text is sparse), mixed RTL/LTR bidirectional layouts, unverified AI coordinates (never auto-verifying model-proposed boxes without SourceMatcher confirmation), serverless timeouts, and truncated JSON responses.",
           },
         },
         {
           "@type": "Question",
-          name: "How does Proof-of-Evidence verification work?",
+          name: "How is data security, compliance, and air-gapped deployment handled?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Every extracted field includes its original label, normalized value, page number, verbatim source quote, and normalized bounding-box coordinates so teams can audit results in one click.",
+            text: "Kashfara enforces magic-byte file signature validation, treats all extracted document text as untrusted data to block prompt injections, runs statelessly without persistent server file storage in the web demo, and deploys inside air-gapped enterprise or banking networks with zero external API calls and zero data leakage.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "What is the time-to-value and total cost of ownership compared to in-house development?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Instead of spending months of senior engineering time building, debugging, and maintaining OCR pipelines, coordinate alignment, model failover, and air-gapped packaging, teams deploy Kashfara immediately with a compact 4B parameter footprint and predictable total cost of ownership.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Does Kashfara support Arabic RTL and bilingual documents?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Yes. Kashfara preserves right-to-left Arabic script, English LTR text, and mixed Arabic-English tables in invoices, bank statements, contracts, leases, and forms, and provides English translations for non-English documents.",
           },
         },
         {
@@ -175,7 +196,7 @@ const JSON_LD = {
           name: "What file formats can I test in the Live Demo?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "You can upload PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, and XLSX files directly in the Live Demo at kashfara.com/demo.",
+            text: "You can upload PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, and XLSX files in the Document Intelligence Live Demo at kashfara.com/demo, and Excel/CSV workbooks in Kashfara Spreadsheet at kashfara.com/spreadsheet/demo.",
           },
         },
       ],

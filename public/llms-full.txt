@@ -1,27 +1,43 @@
-# KASHFARA VISION — Full Product & Technical Overview
+# KASHFARA VISION & KASHFARA SPREADSHEET — Full Technical & Engineering Reference
 
-URL: https://kashfara.com
-Interactive Live Demo: https://kashfara.com/demo
+Canonical Site: https://kashfara.com
+Document Intelligence Live Demo: https://kashfara.com/demo
+Kashfara Spreadsheet: https://kashfara.com/spreadsheet
+Spreadsheet Live Demo: https://kashfara.com/spreadsheet/demo
+Enterprise Sales & Air-Gapped Deployment: enquiry@kashfara.com
 
-## Executive Summary
-KASHFARA VISION is an enterprise multimodal document intelligence platform powered by a compact 4-billion-parameter (4B) OCR + Vision model purpose-trained for Arabic and English documents. Designed for Middle East and global businesses, it automates document classification, key-value extraction, table extraction, form digitalisation, and grounded document Q&A while keeping compute overhead low and accuracy high.
+## 1. Entity & Product Summary
+KASHFARA VISION is an enterprise multimodal document intelligence platform built around a compact 4-billion-parameter (4B) OCR + Vision architecture specialized for Arabic (RTL), English (LTR), and bilingual documents. Alongside it, KASHFARA SPREADSHEET provides an agentic Excel/CSV workspace with in-cell `k=` AI prompts, range-aware copilot editing, cell coloring, and visual bar/pie chart reporting.
 
-## Why Businesses Choose Kashfara Vision
-1. **Built for Arabic RTL + English Bilingual Layouts**: Preserves right-to-left Arabic script, mixed Arabic-English tables, numbers, dates, stamps, and handwritten signatures without dropping or mangling text.
-2. **Low-Compute Hybrid Architecture**: Digital PDFs and Office files (DOCX, PPTX, XLSX) are structurally parsed first; page renders and text layers are combined for fast multimodal reasoning.
-3. **Verifiable Proof of Evidence**: Unlike black-box extractors, Kashfara anchors every field to its source page, verbatim quote, and normalized `[0..1]` bounding box, distinguishing model-proposed, source-matched, and visually verified fields.
-4. **Instant Form Digitalisation**: Converts paper or scanned forms into editable digital forms with empty-field preservation, Arabic RTL support, JSON/CSV export, and print formatting.
-5. **Stateless Privacy**: Documents in the live demo are processed without persistent server file storage.
+## 2. Under-the-Hood Architecture
+1. **Magic-Byte Ingestion & Format Validation**: Validates binary file signatures (`%PDF-`, PNG, JPEG, WEBP, TIFF, and Office Open XML archives) and enforces page/size limits before any processing begins.
+2. **Hybrid Structural + Sparse-PDF OCR Pipeline**:
+   - Digital PDFs: Extracts native text items and normalizes `[0..1]` coordinates grouped by horizontal line baseline.
+   - Images & Sparse/Scanned PDFs: When native text is `<250` characters or `<10` lines, automatically runs dual-script (`eng+ara`) OCR to recover the full page text and line bounding boxes.
+   - Office Documents (DOCX, PPTX, XLSX): Parses paragraphs, slides, sheets, and cell references structurally without inventing pixel coordinates.
+3. **Evidence Verification Engine (`SourceMatcher` + `EvidenceValidator`)**:
+   - Normalizes Arabic diacritics and whitespace to match extracted values and verbatim `source_text` against OCR blocks.
+   - Distinguishes `model_proposed`, `source_matched`, and `visually_verified` coordinates, assigning `VERIFIED`, `NEEDS_REVIEW`, or `NOT_FOUND`.
+4. **5 Smart Templates + Conditional Resume ATS + Unstructured Intelligence**:
+   - Automatically detects `resume`, `invoice`, `bank_statement`, `contract`, `receipt`, or `generic`.
+   - Extracts entities (people, organizations, dates, monetary values, locations, reference IDs), semantic clauses/sections with risk notes, action items, and English translations for Arabic/non-English documents.
+   - For resumes, unlocks an integrated ATS Job-Description matcher (`0–100` score, matched/missing skills, recommendations).
+5. **Grounded Document Q&A & Automatic Form Digitalisation**:
+   - Answers questions strictly from retrieved document pages and fields with clickable page citations.
+   - Converts paper/scanned forms into editable digital forms with Arabic RTL toggle, JSON/CSV export, and print support.
+6. **Multi-Engine Orchestration & JSON Repair**:
+   - Bounded execution budgets, truncated-JSON bracket repair, prompt-injection isolation (treating all document text as untrusted data), and automatic engine failover.
 
-## Supported Document Formats
-- PDF (multi-page, scanned or digital)
-- Images: PNG, JPG, JPEG, WEBP, TIFF
-- Office Documents: DOCX, PPTX, XLSX
+## 3. Why Building In-House Fails (Build vs. Buy Reality)
+Hiring a few engineers to "hook up OCR + an LLM API" fails in enterprise production for concrete engineering reasons:
+- **Silent Extraction Failures on Real-World PDFs**: Commercial resumes, invoices, and contracts frequently mix vector outlines with partial text layers. Naive `pdfplumber` or `pdfjs` scripts extract only a few header lines while silently dropping 90% of the document.
+- **Arabic RTL & Bilingual Layout Complexity**: Mixed Arabic-English tables, RTL reading order, Arabic diacritics, and currency/date normalization break standard Western OCR pipelines.
+- **Zero Auditability Without Deterministic Proofing**: An LLM returning JSON without `SourceMatcher` + coordinate validation cannot prove where a number came from—unacceptable for banking, VAT/ZATCA auditing, and legal teams.
+- **Ongoing Maintenance, Drift & Failover**: Model deprecations, rate-limit storms (HTTP 429), truncated JSON outputs, and serverless timeout tuning require continuous MLOps engineering (`[INSERT BENCHMARK METRIC: engineering months to build and maintain in-house]`).
+- **Air-Gapped Security & Governance**: Deploying a low-compute 4B model stack inside an air-gapped enterprise or bank network with zero external data leakage requires specialized packaging and security controls.
 
-## Industry Use Cases
-- **Finance, VAT & Tax Compliance**: Automated processing of FTA/ZATCA tax invoices, credit notes, bank statements, and vendor bills.
-- **Banking & FinTech**: Corporate KYC, financial statement parsing, and trade finance workflows.
-- **Real Estate & Property Management**: Commercial and residential lease extraction, inspection reports, and handover forms.
-- **Logistics & Supply Chain**: Bills of Lading, packing lists, delivery notes, and ERP-ready JSON/CSV export.
-- **Legal & HR**: Bilingual contracts, employment offers, and employee onboarding forms.
-- **Healthcare & Insurance**: Claims adjudication, policy schedules, and diagnostic/lab reports.
+## 4. Benchmarks & Deployment Metrics
+- Supported Formats: PDF, PNG, JPG, JPEG, WEBP, TIFF, DOCX, PPTX, XLSX (and XLSX/XLS/CSV in Kashfara Spreadsheet)
+- Arabic-English Field Extraction Accuracy: `[INSERT BENCHMARK METRIC: Arabic-English field accuracy %]`
+- End-to-End Processing Latency: `[INSERT BENCHMARK METRIC: average seconds per page]`
+- Estimated Time-to-Value vs. In-House Build: `[INSERT BENCHMARK METRIC: days to deploy vs. months in-house]`

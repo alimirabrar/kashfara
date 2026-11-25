@@ -1,28 +1,29 @@
-# KASHFARA VISION
+# KASHFARA VISION & KASHFARA SPREADSHEET
 
-> 4-Billion-Parameter OCR + Vision Document Intelligence Platform for Arabic & English Enterprise Documents.
+> Enterprise 4-Billion-Parameter (4B) Arabic & English Document Intelligence, Arabic OCR, Document Chatbot, and Air-Gapped Agentic Spreadsheet Platform.
 
-Kashfara Vision combines fast structural OCR parsing with multimodal vision reasoning to extract structured data from Arabic (RTL), English (LTR), and bilingual documents with low compute and high accuracy.
+## Entity Definition
 
-## Pages & Resources
+- **Product Name**: KASHFARA VISION & KASHFARA SPREADSHEET
+- **Category**: Enterprise Multimodal Document Intelligence, Arabic OCR, Document Chatbot, and Agentic Financial Spreadsheet
+- **Target Buyers**: Middle East and global enterprises across Banking & FinTech, Finance & Tax Compliance (VAT/ZATCA/FTA), Real Estate, Logistics, Legal, Enterprise HR, and Healthcare
+- **Deployment Models**: Stateless Cloud SaaS & Air-Gapped On-Premise Enterprise Deployment (zero external data leakage, zero per-token limits)
+- **Sales Contact**: enquiry@kashfara.com
 
-- [Kashfara Vision Home](https://kashfara.com/): Overview of the 4B parameter OCR + Vision architecture, interactive Arabic-English proof-of-evidence showcase, and Middle East business use cases.
-- [Live Demo Workstation](https://kashfara.com/demo): Upload Arabic, English, or bilingual PDF, image, or Office documents to inspect extracted fields, tables, bounding-box proof of evidence, digital forms, and grounded Q&A.
-- [Full Technical Overview](https://kashfara.com/llms-full.txt): Detailed capabilities, supported file formats (PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, XLSX), and enterprise domain coverage.
-- [XML Sitemap](https://kashfara.com/sitemap.xml): Canonical index of public pages on kashfara.com.
+## Canonical Pages & Resources
 
-## Core Capabilities
+- [Kashfara Vision Home](https://kashfara.com/): Product architecture, 4B Arabic LLM + OCR overview, Build vs. Buy engineering comparison, Middle East use cases, and Buyer FAQ.
+- [Document Intelligence Live Demo](https://kashfara.com/demo): Interactive workstation supporting PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, and XLSX with hybrid OCR, 5 smart templates, Resume ATS scoring, Digital Forms, and grounded Document Q&A.
+- [Kashfara Spreadsheet Overview](https://kashfara.com/spreadsheet): Air-gapped agentic spreadsheet for banking ledger reconciliation, `k=` in-cell AI prompts, cell styling, and automated financial reports.
+- [Kashfara Spreadsheet Live Demo](https://kashfara.com/spreadsheet/demo): Interactive Excel/CSV workspace with `k=` in-cell AI, range-aware copilot, cell coloring, and pie/bar chart generation.
+- [Full Technical & Engineering Reference](https://kashfara.com/llms-full.txt): Deep architecture, edge-case handling, and why building in-house fails.
+- [XML Sitemap](https://kashfara.com/sitemap.xml): Canonical index of all public pages.
 
-- **Hybrid OCR + Vision Pipeline**: Parses native PDF text layers and Office structures first, then runs multimodal vision reasoning for layout, handwriting, stamps, and signatures.
-- **Proof-of-Evidence Verification**: Every extracted field includes its original label, normalized value, exact page number, verbatim source quote, and normalized bounding-box coordinates.
-- **Automatic Form Digitalisation**: Detects fillable forms and converts them into editable digital schemas with Arabic RTL toggle, JSON export, CSV export, and print-ready output.
-- **Document-Grounded Q&A**: Answers questions strictly from the uploaded document with clickable page citations.
+## Why Building In-House Fails (Technical Moats)
 
-## Enterprise Business Domains
-
-- **Finance & Accounting**: Arabic-English VAT / ZATCA / FTA invoices, bank statements, purchase orders, receipts.
-- **Banking & FinTech**: Corporate onboarding packs, balance sheets, trade finance documents.
-- **Legal & Enterprise HR**: Bilingual contracts, NDAs, employment agreements, onboarding forms.
-- **Logistics & Supply Chain**: Bills of Lading, delivery notes, packing lists, shipping manifests.
-- **Real Estate & Property**: Commercial leases, valuations, handover checklists.
-- **Healthcare & Insurance**: Medical claims, policy schedules, lab reports, intake forms.
+Companies often underestimate document intelligence as "wrapping an OCR library and calling an LLM API." In production, naive internal builds break on:
+1. **Partially Rasterized & Custom-Font PDFs**: Standard parsers (`pdfplumber`, `pdfjs`) silently extract only 2–3 header lines on vector/Canva/Figma PDFs. Kashfara detects sparse text layers (`<250` chars or `<10` lines) and automatically triggers `eng+ara` OCR with horizontal baseline line grouping.
+2. **Arabic RTL + English Bidirectional Geometry**: Naive pipelines scramble mixed RTL/LTR tables and fail string matching on Arabic diacritics. Kashfara normalizes Arabic diacritics and aligns extracted values to `[0..1]` page coordinates.
+3. **Unverified AI Coordinates & Hallucinations**: Raw LLM outputs invent bounding boxes and fields. Kashfara's `EvidenceValidator` never auto-verifies AI-proposed coordinates, enforcing `VERIFIED`, `NEEDS_REVIEW`, and `NOT_FOUND` statuses anchored to verbatim source quotes.
+4. **Serverless Timeouts, Truncated JSON & Failover**: Complex documents cause 504 timeouts and broken JSON. Kashfara uses bounded time budgets, truncated-JSON repair, and automatic multi-engine failover.
+5. **Air-Gapped Sovereignty**: Regulated banks and enterprises cannot send sensitive documents to external APIs. Kashfara deploys inside air-gapped networks with zero external data leakage.

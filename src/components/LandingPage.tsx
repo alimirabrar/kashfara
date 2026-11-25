@@ -543,6 +543,77 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Why Not Build In-House? Build vs. Buy Engineering Breakdown */}
+      <section id="build-vs-buy" className="py-20 px-4 sm:px-6 bg-white border-t border-black/8">
+        <div className="max-w-6xl mx-auto space-y-10">
+          <div className="max-w-3xl space-y-3">
+            <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
+              ENGINEERING REALITY · BUILD VS. BUY
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-black">
+              Why Not Build Document Intelligence In-House?
+            </h2>
+            <p className="text-base text-[#6E6E73] leading-relaxed">
+              Wrapping an OCR library and calling a generic LLM API works on clean English samples—and breaks silently on real-world Arabic, vector PDFs, and enterprise audits.
+            </p>
+          </div>
+
+          <div className="apple-card rounded-3xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-[#F5F5F7] border-b border-black/10 font-mono text-[11px] uppercase text-[#6E6E73]">
+                  <tr>
+                    <th className="px-5 py-4">Engineering Dimension</th>
+                    <th className="px-5 py-4">Naive In-House Build</th>
+                    <th className="px-5 py-4 text-black">Kashfara Production Stack</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/8">
+                  {[
+                    [
+                      "Partially Rasterized & Vector PDFs",
+                      "Standard PDF parsers silently drop vector bodies or extract only 2–3 header lines.",
+                      "Automatic sparse-text detection (<250 chars / <10 lines) triggers dual-script (Arabic + English) OCR fallback with horizontal baseline grouping.",
+                    ],
+                    [
+                      "Arabic RTL & Bilingual Geometry",
+                      "Scrambled mixed RTL/LTR tables, broken diacritic matching, and misaligned coordinates.",
+                      "Arabic diacritic normalization, RTL-preserving extraction, and deterministic [0..1] bounding-box alignment.",
+                    ],
+                    [
+                      "Evidence & Hallucination Control",
+                      "Raw LLM JSON outputs invent values and guess bounding boxes with no audit trail.",
+                      "Deterministic SourceMatcher + EvidenceValidator never auto-trust AI boxes, enforcing VERIFIED, NEEDS_REVIEW, and NOT_FOUND provenance.",
+                    ],
+                    [
+                      "Reliability, Timeouts & Failover",
+                      "Single-provider 429s, 504 timeouts, and truncated JSON break production pipelines.",
+                      "Bounded execution budgets, truncated-JSON bracket repair, and automatic multi-engine failover.",
+                    ],
+                    [
+                      "Security & Air-Gapped Sovereignty",
+                      "Weeks of custom prompt-injection hardening, magic-byte validation, and on-prem packaging.",
+                      "Built-in untrusted-data isolation, binary signature verification, and air-gapped on-premise deployment with zero data leakage.",
+                    ],
+                    [
+                      "Time to Production & TCO",
+                      "[INSERT BENCHMARK METRIC: engineering months to build & maintain]",
+                      "Day-1 live deployment ([INSERT BENCHMARK METRIC: TCO savings vs. in-house]).",
+                    ],
+                  ].map(([dim, diy, kashfara]) => (
+                    <tr key={dim} className="hover:bg-[#F5F5F7]/50 transition-colors">
+                      <td className="px-5 py-4 font-semibold text-black align-top">{dim}</td>
+                      <td className="px-5 py-4 text-[#6E6E73] align-top">{diy}</td>
+                      <td className="px-5 py-4 text-black font-medium align-top">{kashfara}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Middle East Use Cases */}
       <section id="use-cases" className="py-20 px-4 sm:px-6 bg-white">
         <div className="max-w-6xl mx-auto space-y-12">
@@ -603,20 +674,28 @@ export function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {[
               {
-                q: "What makes Kashfara Vision different from standard OCR?",
-                a: "Kashfara combines fast structural OCR parsing with a 4-billion-parameter multimodal vision model, understanding layout, tables, stamps, signatures, and mixed Arabic-English context together.",
+                q: "How is Kashfara different from building an internal solution with our own engineers?",
+                a: "Wrapping an OCR library and calling a generic LLM API fails on real-world enterprise documents. Standard PDF parsers silently drop vector-rendered bodies, naive OCR scrambles Arabic RTL tables, and raw LLMs invent bounding boxes. Kashfara ships a production-hardened hybrid parser, sparse-PDF OCR fallback, Arabic diacritic normalization, deterministic SourceMatcher evidence verification, truncated-JSON repair, and multi-engine failover out of the box.",
               },
               {
-                q: "Does it support Arabic RTL and bilingual documents?",
-                a: "Yes. Kashfara preserves right-to-left Arabic script, English LTR text, and mixed Arabic-English tables in invoices, contracts, leases, and forms.",
+                q: "What technical edge cases and production risks does Kashfara solve?",
+                a: "Kashfara solves partially rasterized PDFs (auto-triggering dual-script Arabic and English OCR when native text is sparse), mixed RTL/LTR bidirectional layouts, unverified AI coordinates (never auto-verifying model-proposed boxes without SourceMatcher confirmation), serverless timeouts, and truncated JSON responses.",
               },
               {
-                q: "How does Proof-of-Evidence verification work?",
-                a: "Every extracted field includes its original label, normalized value, page number, verbatim source quote, and normalized bounding-box coordinates so teams can audit results in one click.",
+                q: "How is data security, compliance, and air-gapped deployment handled?",
+                a: "Kashfara enforces magic-byte file signature validation, treats all extracted document text as untrusted data to block prompt injections, runs statelessly without persistent server file storage in the web demo, and deploys inside air-gapped enterprise or banking networks with zero external API calls and zero data leakage.",
+              },
+              {
+                q: "What is the time-to-value and total cost of ownership compared to in-house development?",
+                a: "Instead of spending months of senior engineering time building, debugging, and maintaining OCR pipelines, coordinate alignment, model failover, and air-gapped packaging, teams deploy Kashfara immediately with a compact 4B parameter footprint and predictable total cost of ownership.",
+              },
+              {
+                q: "Does Kashfara support Arabic RTL and bilingual documents?",
+                a: "Yes. Kashfara preserves right-to-left Arabic script, English LTR text, and mixed Arabic-English tables in invoices, bank statements, contracts, leases, and forms, and provides English translations for non-English documents.",
               },
               {
                 q: "What file formats can I test in the Live Demo?",
-                a: "You can upload PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, and XLSX files directly in the Live Demo at kashfara.com/demo.",
+                a: "You can upload PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, and XLSX files in the Document Intelligence Live Demo at kashfara.com/demo, and Excel/CSV workbooks in Kashfara Spreadsheet at kashfara.com/spreadsheet/demo.",
               },
             ].map((item) => (
               <article key={item.q} className="apple-surface rounded-2xl p-6 space-y-2">
