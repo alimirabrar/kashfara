@@ -17,7 +17,9 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "KASHFARA VOICE STUDIO — Low-Compute On-Premise TTS + STT Enterprise Voice AI",
+  title: {
+    absolute: "KASHFARA VOICE STUDIO — Low-Compute On-Premise TTS + STT Voice AI",
+  },
   description:
     "Low-computing enterprise voice model combining TTS and STT engineered for great output and permanent on-premise deployment with zero vendor lock-in. Proven in production with jobshop.ai for BPO recruitment and English speaking skill analysis.",
   keywords: [
@@ -32,10 +34,18 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/voice-studio" },
   openGraph: {
-    title: "KASHFARA VOICE STUDIO — On-Premise Low-Compute TTS + STT",
+    type: "website",
+    siteName: "KASHFARA VOICE STUDIO",
+    title: "KASHFARA VOICE STUDIO — Low-Compute On-Premise TTS + STT Voice AI",
     description:
       "Deploy our low-computing TTS + STT voice model on-premise forever with zero vendor lock-in. Trusted by jobshop.ai for BPO hiring and English speaking evaluation.",
     url: "https://kashfara.com/voice-studio",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KASHFARA VOICE STUDIO — Low-Compute On-Premise TTS + STT",
+    description:
+      "Enterprise voice AI combining TTS + STT for low-compute on-premise deployment with zero vendor lock-in. Proven by jobshop.ai.",
   },
 };
 

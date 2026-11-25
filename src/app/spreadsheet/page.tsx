@@ -18,7 +18,9 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "KASHFARA SPREADSHEET — Air-Gapped 4B LLM Agentic AI Spreadsheet for Banking",
+  title: {
+    absolute: "KASHFARA SPREADSHEET — Air-Gapped 4B LLM Agentic AI Spreadsheet",
+  },
   description:
     "Proprietary 4-billion-parameter (4B) LLM agentic spreadsheet trained on 20M+ Arabic & English documents & ledgers. Replace Excel formulas with k= prompts, color cells, generate pie/bar charts, and deploy air-gapped on-premise.",
   keywords: [
@@ -29,13 +31,22 @@ export const metadata: Metadata = {
     "banking ledger reconciliation",
     "4B LLM spreadsheet",
     "Kashfara Spreadsheet",
+    "k= Excel AI",
   ],
   alternates: { canonical: "/spreadsheet" },
   openGraph: {
-    title: "KASHFARA SPREADSHEET — Proprietary 4B LLM Agentic Spreadsheet",
+    type: "website",
+    siteName: "KASHFARA SPREADSHEET",
+    title: "KASHFARA SPREADSHEET — Air-Gapped 4B LLM Agentic AI Spreadsheet",
     description:
-      "Powered by Kashfara's proprietary 4B LLM trained on 20M+ Arabic & English documents. Type k= in any cell or command the AI copilot to reconcile ledgers, calculate VAT, and generate executive reports.",
+      "Every cell is alive. Powered by Kashfara's proprietary 4B LLM trained on 20M+ Arabic & English documents. Type k= in any cell, reconcile ledgers, and deploy air-gapped.",
     url: "https://kashfara.com/spreadsheet",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KASHFARA SPREADSHEET — Air-Gapped 4B LLM Agentic AI Spreadsheet",
+    description:
+      "Every cell is alive. Type k= in any cell, generate pie/bar charts, reconcile Arabic-English ledgers, and deploy air-gapped on-premise.",
   },
 };
 
