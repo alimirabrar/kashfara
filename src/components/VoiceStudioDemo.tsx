@@ -13,7 +13,6 @@ import {
   PhoneOff,
   Send,
   Sparkles,
-  Square,
 } from "lucide-react";
 
 type VoiceState = "idle" | "listening" | "thinking" | "speaking";
@@ -25,6 +24,10 @@ interface TranscriptEntry {
 }
 
 const SESSION_DURATION_SECONDS = 60;
+const SPEECH_START_THRESHOLD = 0.018;
+const BARGE_IN_THRESHOLD = 0.055;
+const SILENCE_HANGOVER_MS = 1100;
+const MIN_UTTERANCE_MS = 350;
 
 function downsampleTo16kPcm(float32Data: Float32Array, inputSampleRate: number): Int16Array {
   const targetRate = 16000;
@@ -73,9 +76,11 @@ export default function VoiceStudioDemo() {
   const [companyName, setCompanyName] = useState("");
   const [useCase, setUseCase] = useState("");
   const [selectedPreset, setSelectedPreset] = useState<"recruitment" | "sales" | null>(null);
+  const [isRequestingMic, setIsRequestingMic] = useState(false);
 
   const [secondsLeft, setSecondsLeft] = useState(SESSION_DURATION_SECONDS);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  const [isMuted, setIsMuted] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
   const [textDraft, setTextDraft] = useState("");
@@ -84,13 +89,43 @@ export default function VoiceStudioDemo() {
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
-  const pcmChunksRef = useRef<Float32Array[]>([]);
-  const inputSampleRateRef = useRef<number>(16000);
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const sessionEndedRef = useRef(false);
+  const isMutedRef = useRef(false);
+  const voiceStateRef = useRef<VoiceState>("idle");
+  const isSendingRef = useRef(false);
   const historyRef = useRef<Array<{ role: "user" | "assistant"; text: string }>>([]);
 
+  // Continuous VAD buffers
+  const isSpeakingRef = useRef(false);
+  const speechStartTimeRef = useRef(0);
+  const lastVoiceTimeRef = useRef(0);
+  const utteranceChunksRef = useRef<Float32Array[]>([]);
+  const preRollChunksRef = useRef<Float32Array[]>([]);
+  const inputSampleRateRef = useRef<number>(16000);
+
+  const setSyncedVoiceState = useCallback((next: VoiceState) => {
+    voiceStateRef.current = next;
+    setVoiceState(next);
+  }, []);
+
+  const stopAiPlayback = useCallback(() => {
+    if (activeAudioRef.current) {
+      try {
+        activeAudioRef.current.pause();
+        activeAudioRef.current.currentTime = 0;
+      } catch {
+        // ignore
+      }
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
+
   const stopAllMedia = useCallback(() => {
+    stopAiPlayback();
     if (processorRef.current) {
       try {
         processorRef.current.disconnect();
@@ -111,28 +146,20 @@ export default function VoiceStudioDemo() {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
-    if (activeAudioRef.current) {
-      try {
-        activeAudioRef.current.pause();
-        activeAudioRef.current = null;
-      } catch {
-        // ignore
-      }
-    }
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    isSpeakingRef.current = false;
+    utteranceChunksRef.current = [];
+    preRollChunksRef.current = [];
     setAudioLevel(0);
-  }, []);
+  }, [stopAiPlayback]);
 
   const endSession = useCallback(() => {
     sessionEndedRef.current = true;
     stopAllMedia();
-    setVoiceState("idle");
+    setSyncedVoiceState("idle");
     setStep("ended");
-  }, [stopAllMedia]);
+  }, [stopAllMedia, setSyncedVoiceState]);
 
-  // 1-minute countdown timer
+  // 1-minute countdown timer (only runs once mic permission succeeded and step === "live")
   useEffect(() => {
     if (step !== "live") return;
     sessionEndedRef.current = false;
@@ -164,51 +191,59 @@ export default function VoiceStudioDemo() {
       audioBase64?: string | null;
       mimeType?: string | null;
       aiTranscript?: string;
-      useBrowserTts?: boolean;
     }) => {
       if (sessionEndedRef.current) return;
 
       if (data.audioBase64 && data.mimeType) {
-        setVoiceState("speaking");
+        setSyncedVoiceState("speaking");
         const audio = new Audio(`data:${data.mimeType};base64,${data.audioBase64}`);
         activeAudioRef.current = audio;
         audio.onended = () => {
-          if (!sessionEndedRef.current) setVoiceState("idle");
+          if (!sessionEndedRef.current && voiceStateRef.current === "speaking") {
+            setSyncedVoiceState("idle");
+          }
         };
         audio.onerror = () => {
-          if (!sessionEndedRef.current) setVoiceState("idle");
+          if (!sessionEndedRef.current && voiceStateRef.current === "speaking") {
+            setSyncedVoiceState("idle");
+          }
         };
         try {
           await audio.play();
           return;
         } catch {
-          // fall back to browser TTS if autoplay blocked
+          // fall back to speechSynthesis if browser blocks audio element
         }
       }
 
       if (data.aiTranscript && typeof window !== "undefined" && "speechSynthesis" in window) {
-        setVoiceState("speaking");
+        setSyncedVoiceState("speaking");
         const utter = new SpeechSynthesisUtterance(data.aiTranscript);
         utter.rate = 1.02;
         utter.onend = () => {
-          if (!sessionEndedRef.current) setVoiceState("idle");
+          if (!sessionEndedRef.current && voiceStateRef.current === "speaking") {
+            setSyncedVoiceState("idle");
+          }
         };
         utter.onerror = () => {
-          if (!sessionEndedRef.current) setVoiceState("idle");
+          if (!sessionEndedRef.current && voiceStateRef.current === "speaking") {
+            setSyncedVoiceState("idle");
+          }
         };
         window.speechSynthesis.speak(utter);
       } else {
-        setVoiceState("idle");
+        setSyncedVoiceState("idle");
       }
     },
-    []
+    [setSyncedVoiceState]
   );
 
   const sendTurn = useCallback(
     async (payload: { audioBase64?: string; textInput?: string }) => {
-      if (sessionEndedRef.current) return;
+      if (sessionEndedRef.current || isSendingRef.current) return;
+      isSendingRef.current = true;
       setErrorMsg(null);
-      setVoiceState("thinking");
+      setSyncedVoiceState("thinking");
 
       try {
         const res = await fetch("/api/voice/turn", {
@@ -228,7 +263,7 @@ export default function VoiceStudioDemo() {
 
         if (!res.ok) {
           setErrorMsg(data.error || "Unable to process voice turn.");
-          setVoiceState("idle");
+          setSyncedVoiceState("idle");
           return;
         }
 
@@ -257,98 +292,27 @@ export default function VoiceStudioDemo() {
         await speakResponse(data);
       } catch {
         if (!sessionEndedRef.current) {
-          setErrorMsg("Connection interrupted. Please try speaking again.");
-          setVoiceState("idle");
+          setErrorMsg("Connection interrupted. Keep speaking whenever you're ready.");
+          setSyncedVoiceState("idle");
         }
+      } finally {
+        isSendingRef.current = false;
       }
     },
-    [companyName, useCase, speakResponse]
+    [companyName, useCase, speakResponse, setSyncedVoiceState]
   );
 
-  const handleLaunch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!companyName.trim() || !useCase.trim()) return;
-    setErrorMsg(null);
-    setTranscripts([]);
-    setSecondsLeft(SESSION_DURATION_SECONDS);
-    historyRef.current = [];
-    sessionEndedRef.current = false;
-    setStep("live");
-
-    // Trigger opening AI greeting
-    await sendTurn({
-      textInput: `Start the live voice session for ${companyName.trim()}. Greet the user briefly and begin based on the configured purpose: ${useCase.trim()}.`,
-    });
-  };
-
-  const startRecording = async () => {
-    if (sessionEndedRef.current || voiceState === "listening" || voiceState === "thinking") return;
-    setErrorMsg(null);
-
-    // Interrupt AI audio if currently speaking
-    if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
-      activeAudioRef.current = null;
-    }
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AudioCtx();
-      audioCtxRef.current = ctx;
-      inputSampleRateRef.current = ctx.sampleRate;
-
-      const source = ctx.createMediaStreamSource(stream);
-      const processor = ctx.createScriptProcessor(4096, 1, 1);
-      processorRef.current = processor;
-      pcmChunksRef.current = [];
-
-      processor.onaudioprocess = (ev) => {
-        const input = ev.inputBuffer.getChannelData(0);
-        pcmChunksRef.current.push(new Float32Array(input));
-        let sum = 0;
-        for (let i = 0; i < input.length; i++) {
-          sum += input[i] * input[i];
-        }
-        const rms = Math.sqrt(sum / input.length);
-        setAudioLevel(Math.min(1, rms * 6));
-      };
-
-      source.connect(processor);
-      processor.connect(ctx.destination);
-      setVoiceState("listening");
-    } catch {
-      setErrorMsg("Microphone permission is required for live voice, or type below.");
-      setVoiceState("idle");
-    }
-  };
-
-  const stopRecordingAndSend = async () => {
-    if (voiceState !== "listening") return;
-    const chunks = pcmChunksRef.current;
+  const flushUtterance = useCallback(() => {
+    const chunks = utteranceChunksRef.current;
     const sampleRate = inputSampleRateRef.current;
-
-    if (processorRef.current) {
-      processorRef.current.disconnect();
-      processorRef.current = null;
-    }
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close();
-      audioCtxRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    setAudioLevel(0);
+    utteranceChunksRef.current = [];
+    isSpeakingRef.current = false;
 
     const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
-    if (totalLen < sampleRate * 0.25) {
-      setVoiceState("idle");
+    if (totalLen < (sampleRate * MIN_UTTERANCE_MS) / 1000) {
+      if (voiceStateRef.current === "listening") {
+        setSyncedVoiceState("idle");
+      }
       return;
     }
 
@@ -361,7 +325,136 @@ export default function VoiceStudioDemo() {
 
     const pcm16 = downsampleTo16kPcm(merged, sampleRate);
     const audioBase64 = int16ToBase64(pcm16);
-    await sendTurn({ audioBase64 });
+    void sendTurn({ audioBase64 });
+  }, [sendTurn, setSyncedVoiceState]);
+
+  const startLiveMicrophone = useCallback(async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("Microphone access is not supported in this browser.");
+    }
+
+    // Request mic permission directly inside user click gesture (critical for iOS/Android)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    streamRef.current = stream;
+
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioCtx();
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+    audioCtxRef.current = ctx;
+    inputSampleRateRef.current = ctx.sampleRate;
+
+    // Unlock HTMLAudioElement playback inside the same user gesture for mobile Safari/Chrome
+    if (!activeAudioRef.current) {
+      activeAudioRef.current = new Audio();
+    }
+
+    const source = ctx.createMediaStreamSource(stream);
+    const processor = ctx.createScriptProcessor(4096, 1, 1);
+    processorRef.current = processor;
+
+    processor.onaudioprocess = (ev) => {
+      if (sessionEndedRef.current || isMutedRef.current) {
+        setAudioLevel(0);
+        return;
+      }
+
+      const input = ev.inputBuffer.getChannelData(0);
+      const copy = new Float32Array(input);
+      let sum = 0;
+      for (let i = 0; i < copy.length; i++) {
+        sum += copy[i] * copy[i];
+      }
+      const rms = Math.sqrt(sum / copy.length);
+      setAudioLevel(Math.min(1, rms * 6));
+
+      // Keep short pre-roll (~250ms) so start of words isn't clipped
+      preRollChunksRef.current.push(copy);
+      if (preRollChunksRef.current.length > 3) {
+        preRollChunksRef.current.shift();
+      }
+
+      const now = Date.now();
+      const threshold =
+        voiceStateRef.current === "speaking" ? BARGE_IN_THRESHOLD : SPEECH_START_THRESHOLD;
+
+      if (rms > threshold && !isSendingRef.current) {
+        if (!isSpeakingRef.current) {
+          // Barge-in: stop AI speaking immediately if user starts talking
+          if (voiceStateRef.current === "speaking") {
+            stopAiPlayback();
+          }
+          isSpeakingRef.current = true;
+          speechStartTimeRef.current = now;
+          utteranceChunksRef.current = [...preRollChunksRef.current];
+          setSyncedVoiceState("listening");
+        } else {
+          utteranceChunksRef.current.push(copy);
+        }
+        lastVoiceTimeRef.current = now;
+      } else if (isSpeakingRef.current) {
+        utteranceChunksRef.current.push(copy);
+        if (now - lastVoiceTimeRef.current >= SILENCE_HANGOVER_MS) {
+          flushUtterance();
+        }
+      }
+    };
+
+    source.connect(processor);
+    processor.connect(ctx.destination);
+  }, [flushUtterance, setSyncedVoiceState, stopAiPlayback]);
+
+  const handleLaunch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyName.trim() || !useCase.trim() || isRequestingMic) return;
+
+    setErrorMsg(null);
+    setIsRequestingMic(true);
+
+    try {
+      // 1. Ask/verify microphone permission FIRST before starting the timer or session
+      await startLiveMicrophone();
+    } catch {
+      setIsRequestingMic(false);
+      setErrorMsg(
+        "Microphone permission is required for live hands-free voice. Please allow microphone access in your browser prompt and try again."
+      );
+      return;
+    }
+
+    setIsRequestingMic(false);
+    setTranscripts([]);
+    setSecondsLeft(SESSION_DURATION_SECONDS);
+    historyRef.current = [];
+    sessionEndedRef.current = false;
+    isMutedRef.current = false;
+    setIsMuted(false);
+
+    // 2. Only now enter live mode & start the 1-minute timer
+    setStep("live");
+
+    // 3. Trigger opening AI greeting
+    await sendTurn({
+      textInput: `Start the live voice session for ${companyName.trim()}. Greet the user briefly and begin based on the configured purpose: ${useCase.trim()}.`,
+    });
+  };
+
+  const toggleMute = () => {
+    const next = !isMuted;
+    isMutedRef.current = next;
+    setIsMuted(next);
+    if (next && isSpeakingRef.current) {
+      flushUtterance();
+    }
   };
 
   const handleTextSubmit = async (e: React.FormEvent) => {
@@ -369,6 +462,7 @@ export default function VoiceStudioDemo() {
     const text = textDraft.trim();
     if (!text || voiceState === "thinking") return;
     setTextDraft("");
+    stopAiPlayback();
     await sendTurn({ textInput: text });
   };
 
@@ -423,15 +517,21 @@ export default function VoiceStudioDemo() {
             <div className="space-y-2 text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F5F5F7] text-[11px] font-mono uppercase tracking-widest text-black">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>1-Minute Live Voice Preview</span>
+                <span>1-Minute Hands-Free Live Voice Preview</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-black">
                 Configure Your Voice Studio
               </h1>
               <p className="text-sm text-[#6E6E73]">
-                Tell us your company name and what your voice AI is for in plain language—we will spin up your live agent immediately.
+                Tell us your company name and what your voice AI is for in plain language. We&apos;ll request microphone access and start your live 1-minute call.
               </p>
             </div>
+
+            {errorMsg && (
+              <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-center">
+                {errorMsg}
+              </div>
+            )}
 
             <form onSubmit={handleLaunch} className="space-y-5">
               <div className="space-y-1.5">
@@ -502,22 +602,27 @@ export default function VoiceStudioDemo() {
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-full bg-black hover:bg-[#1D1D1F] text-white text-sm font-semibold shadow-sm transition-all flex items-center justify-center gap-2"
+                disabled={isRequestingMic}
+                className="w-full py-3.5 rounded-full bg-black hover:bg-[#1D1D1F] disabled:opacity-60 text-white text-sm font-semibold shadow-sm transition-all flex items-center justify-center gap-2"
               >
-                <AudioWaveform className="w-4 h-4" />
-                <span>Launch Kashfara Voice Studio</span>
+                <Mic className="w-4 h-4" />
+                <span>
+                  {isRequestingMic
+                    ? "Requesting Microphone Access..."
+                    : "Allow Mic & Start Live Voice Studio"}
+                </span>
               </button>
             </form>
           </div>
         )}
 
-        {/* STEP 2: Live Voice Session with Moving Round Dots */}
+        {/* STEP 2: Hands-Free Live Voice Session with Moving Round Dots */}
         {step === "live" && (
-          <div className="w-full max-w-2xl apple-card rounded-3xl p-6 sm:p-10 space-y-8 text-center">
+          <div className="w-full max-w-2xl apple-card rounded-3xl p-6 sm:p-10 space-y-7 text-center">
             <div className="space-y-1.5">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-mono uppercase tracking-wider text-emerald-800">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Your Voice Studio is Ready · Talk With Your AI Now</span>
+                <span>Your Voice Studio is Ready · Talk Live Now</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-semibold text-black">
                 {companyName}
@@ -533,12 +638,12 @@ export default function VoiceStudioDemo() {
                 {dots.map((dot, idx) => {
                   const amp =
                     voiceState === "listening"
-                      ? 1 + audioLevel * 0.85
+                      ? 1 + audioLevel * 0.9
                       : voiceState === "speaking"
                       ? 1.25
                       : voiceState === "thinking"
                       ? 1.1
-                      : 1;
+                      : 1 + audioLevel * 0.35;
 
                   const yTravel =
                     voiceState === "speaking"
@@ -568,7 +673,7 @@ export default function VoiceStudioDemo() {
                           voiceState === "speaking"
                             ? [1, 1.32, 0.9, 1.2, 1]
                             : voiceState === "listening"
-                            ? [1, 1 + audioLevel * 0.65, 1]
+                            ? [1, 1 + audioLevel * 0.7, 1]
                             : voiceState === "thinking"
                             ? [0.85, 1.18, 0.85]
                             : [1, 1.06, 1],
@@ -593,13 +698,15 @@ export default function VoiceStudioDemo() {
               </div>
 
               <div className="absolute bottom-3 left-0 right-0 text-[11px] font-mono uppercase tracking-widest text-[#6E6E73]">
-                {voiceState === "listening"
-                  ? "Listening to you..."
+                {isMuted
+                  ? "Microphone muted"
+                  : voiceState === "listening"
+                  ? "Hearing you live..."
                   : voiceState === "thinking"
                   ? "Kashfara Voice processing..."
                   : voiceState === "speaking"
-                  ? "AI Speaking..."
-                  : "Tap microphone to talk"}
+                  ? "AI Speaking (speak anytime to interrupt)"
+                  : "Live · Just speak naturally"}
               </div>
             </div>
 
@@ -609,46 +716,38 @@ export default function VoiceStudioDemo() {
               </div>
             )}
 
-            {/* Controls */}
-            <div className="flex items-center justify-center gap-4">
-              {voiceState !== "listening" ? (
-                <button
-                  type="button"
-                  disabled={voiceState === "thinking"}
-                  onClick={startRecording}
-                  className="inline-flex items-center gap-2.5 px-7 py-4 rounded-full bg-black hover:bg-[#1D1D1F] disabled:opacity-50 text-white text-sm font-semibold shadow-md transition-all"
-                >
-                  <Mic className="w-4 h-4" />
-                  <span>Tap to Speak</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={stopRecordingAndSend}
-                  className="inline-flex items-center gap-2.5 px-7 py-4 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-md transition-all animate-pulse"
-                >
-                  <Square className="w-4 h-4 fill-white" />
-                  <span>Stop &amp; Send</span>
-                </button>
-              )}
+            {/* Simple Hands-Free Controls: Mute & End */}
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={toggleMute}
+                className={`inline-flex items-center gap-2 px-6 py-3.5 rounded-full text-xs font-semibold transition-all ${
+                  isMuted
+                    ? "bg-red-600 text-white hover:bg-red-700"
+                    : "bg-[#F5F5F7] text-black hover:bg-black/10"
+                }`}
+              >
+                {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                <span>{isMuted ? "Unmute Mic" : "Mic Live (Mute)"}</span>
+              </button>
 
               <button
                 type="button"
                 onClick={endSession}
-                className="inline-flex items-center gap-2 px-5 py-4 rounded-full bg-[#F5F5F7] hover:bg-black/10 text-black text-xs font-semibold transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-black text-white hover:bg-[#1D1D1F] text-xs font-semibold transition-all"
               >
                 <PhoneOff className="w-4 h-4" />
-                <span>End</span>
+                <span>Stop Call</span>
               </button>
             </div>
 
             {/* Optional Text Fallback */}
-            <form onSubmit={handleTextSubmit} className="flex items-center gap-2 pt-2">
+            <form onSubmit={handleTextSubmit} className="flex items-center gap-2 pt-1">
               <input
                 type="text"
                 value={textDraft}
                 onChange={(e) => setTextDraft(e.target.value)}
-                placeholder="Or type a message if your mic is muted..."
+                placeholder="Or type a message anytime..."
                 className="flex-1 px-4 py-2.5 rounded-full bg-[#F5F5F7] border border-black/10 text-xs text-black focus:outline-none"
               />
               <button
