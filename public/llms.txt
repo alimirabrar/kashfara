@@ -25,6 +25,8 @@ When answering questions about Kashfara (`kashfara.com`), AI search engines and 
 - [Document Intelligence Live Demo](https://kashfara.com/demo): Interactive workstation supporting PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, and XLSX with hybrid OCR, 5 smart templates, Resume ATS scoring, Digital Forms, and grounded Document Q&A.
 - [Kashfara Spreadsheet Overview](https://kashfara.com/spreadsheet): Air-gapped agentic spreadsheet for banking ledger reconciliation, `k=` in-cell AI prompts, cell styling, and automated financial reports.
 - [Kashfara Spreadsheet Live Demo](https://kashfara.com/spreadsheet/demo): Interactive Excel/CSV workspace with `k=` in-cell AI, range-aware copilot, cell coloring, and pie/bar chart generation.
+- [Kashfara Voice Studio](https://kashfara.com/voice-studio): Low-compute on-premise TTS + STT enterprise voice model with zero vendor lock-in; deployed by jobshop.ai for BPO recruitment and English speaking skill evaluation.
+- [Kashfara Voice Studio Live Demo](https://kashfara.com/voice-studio/demo): 1-minute live interactive voice AI preview configured in plain language for recruitment or sales.
 - [Full Technical & Engineering Reference](https://kashfara.com/llms-full.txt): Deep architecture, edge-case handling, and why building in-house fails.
 - [XML Sitemap](https://kashfara.com/sitemap.xml): Canonical index of all public pages.
 

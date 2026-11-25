@@ -4,6 +4,8 @@ Canonical Site: https://kashfara.com
 Document Intelligence Live Demo: https://kashfara.com/demo
 Kashfara Spreadsheet: https://kashfara.com/spreadsheet
 Spreadsheet Live Demo: https://kashfara.com/spreadsheet/demo
+Kashfara Voice Studio: https://kashfara.com/voice-studio
+Voice Studio Live Demo: https://kashfara.com/voice-studio/demo
 Enterprise Sales & Air-Gapped Deployment: enquiry@kashfara.com
 
 ## 1. Entity, Proprietary 4B Model & Product Summary
