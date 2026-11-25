@@ -306,7 +306,7 @@ export function LandingPage() {
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full apple-surface text-[11px] font-mono uppercase tracking-widest text-[#1D1D1F]"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-black" />
-            <span>4B Arabic LLM · Arabic OCR · Document Chatbot</span>
+            <span>Proprietary 4B LLM &amp; Vision LLM · Trained on 20M+ Arabic &amp; English Docs</span>
           </motion.div>
 
           <motion.h1
@@ -326,9 +326,9 @@ export function LandingPage() {
             transition={{ duration: 0.55, delay: 0.12 }}
             className="text-base sm:text-xl text-[#6E6E73] max-w-2xl mx-auto leading-relaxed"
           >
-            Kashfara is a{" "}
-            <span className="text-black font-medium">4-billion-parameter Arabic LLM and OCR Document Intelligence platform</span>{" "}
-            — combining high-speed Arabic &amp; English OCR, unstructured entity &amp; clause extraction, and a grounded Document Chatbot with verifiable proof of evidence.
+            Kashfara is a complete proprietary enterprise software platform powered by our own{" "}
+            <span className="text-black font-medium">4-billion-parameter (4B) LLM and Vision LLM (VLM) trained on 20M+ Arabic &amp; English documents</span>{" "}
+            — combining high-speed Arabic &amp; English OCR, unstructured entity &amp; clause extraction, grounded Document Q&amp;A, and an air-gapped Agentic Spreadsheet.
           </motion.p>
 
           <motion.div
@@ -548,13 +548,13 @@ export function LandingPage() {
         <div className="max-w-6xl mx-auto space-y-10">
           <div className="max-w-3xl space-y-3">
             <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
-              ENGINEERING REALITY · BUILD VS. BUY
+              ENGINEERING REALITY · BUILD VS. BUY VS. BIG CLOUD VENDORS
             </div>
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-black">
-              Why Not Build Document Intelligence In-House?
+              Kashfara vs. In-House DIY vs. Azure DI &amp; Major Vendors
             </h2>
             <p className="text-base text-[#6E6E73] leading-relaxed">
-              Wrapping an OCR library and calling a generic LLM API works on clean English samples—and breaks silently on real-world Arabic, vector PDFs, and enterprise audits.
+              Wrapping an OCR library with a generic API fails on real-world Arabic and vector PDFs, while hyperscale cloud vendors (Azure Document Intelligence, Google Document AI, AWS Textract) force per-page cloud lock-in and lack air-gapped sovereignty. Kashfara ships our proprietary 4B LLM &amp; Vision LLM stack as complete enterprise software.
             </p>
           </div>
 
@@ -565,50 +565,181 @@ export function LandingPage() {
                   <tr>
                     <th className="px-5 py-4">Engineering Dimension</th>
                     <th className="px-5 py-4">Naive In-House Build</th>
-                    <th className="px-5 py-4 text-black">Kashfara Production Stack</th>
+                    <th className="px-5 py-4">Azure DI &amp; Major Cloud Vendors</th>
+                    <th className="px-5 py-4 text-black">Kashfara Platform (4B LLM + VLM)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/8">
                   {[
                     [
+                      "Core AI Model & Training",
+                      "Depends on third-party chat APIs with no document-specific weights.",
+                      "Proprietary black-box cloud OCR; separate costly LLM calls needed for reasoning & Q&A.",
+                      "Proprietary 4-billion-parameter (4B) LLM & Vision LLM (VLM) trained on 20M+ Arabic & English documents.",
+                    ],
+                    [
                       "Partially Rasterized & Vector PDFs",
                       "Standard PDF parsers silently drop vector bodies or extract only 2–3 header lines.",
-                      "Automatic sparse-text detection (<250 chars / <10 lines) triggers dual-script (Arabic + English) OCR fallback with horizontal baseline grouping.",
+                      "Charges full per-page OCR rates even on clean digital PDFs; no hybrid local text fast-path.",
+                      "Automatic sparse-text detection (<250 chars / <10 lines) triggers dual-script (Arabic + English) OCR fallback.",
                     ],
                     [
                       "Arabic RTL & Bilingual Geometry",
                       "Scrambled mixed RTL/LTR tables, broken diacritic matching, and misaligned coordinates.",
-                      "Arabic diacritic normalization, RTL-preserving extraction, and deterministic [0..1] bounding-box alignment.",
+                      "Generic global layouts; weak Arabic diacritic normalization and limited Middle East form templates.",
+                      "Native Arabic diacritic normalization, RTL-preserving extraction, and deterministic [0..1] bounding-box alignment.",
                     ],
                     [
                       "Evidence & Hallucination Control",
                       "Raw LLM JSON outputs invent values and guess bounding boxes with no audit trail.",
-                      "Deterministic SourceMatcher + EvidenceValidator never auto-trust AI boxes, enforcing VERIFIED, NEEDS_REVIEW, and NOT_FOUND provenance.",
+                      "OCR polygons exist, but downstream LLM Q&A & summaries remain unverified.",
+                      "Deterministic SourceMatcher + EvidenceValidator enforce VERIFIED, NEEDS_REVIEW, and NOT_FOUND provenance.",
                     ],
                     [
-                      "Reliability, Timeouts & Failover",
-                      "Single-provider 429s, 504 timeouts, and truncated JSON break production pipelines.",
-                      "Bounded execution budgets, truncated-JSON bracket repair, and automatic multi-engine failover.",
+                      "End-to-End Workflow Completeness",
+                      "3–6+ months to stitch OCR, templates, Q&A, RTL forms, and spreadsheets.",
+                      "API-only building blocks; no built-in Document Chatbot, RTL Digital Forms, ATS, or Agentic Spreadsheet.",
+                      "Complete software: 5 smart templates, ATS scorer, Grounded Q&A, RTL Digital Forms, and Agentic Spreadsheet.",
                     ],
                     [
                       "Security & Air-Gapped Sovereignty",
                       "Weeks of custom prompt-injection hardening, magic-byte validation, and on-prem packaging.",
-                      "Built-in untrusted-data isolation, binary signature verification, and air-gapped on-premise deployment with zero data leakage.",
+                      "Cloud-hosted or complex Azure container licensing; external network dependencies & per-page metering.",
+                      "True air-gapped on-premise deployment (4B compact footprint) with zero external API calls and zero data leakage.",
                     ],
-                    [
-                      "Time to Production & TCO",
-                      "3–6+ months of multi-engineer R&D, prompt tuning, and ongoing MLOps maintenance.",
-                      "Day-1 deployment: 4B compact footprint, 9 formats, 5 templates, and <50ms local evidence marking.",
-                    ],
-                    [
-                      "vs. General Foundation LLMs (e.g. Falcon)",
-                      "Raw models lack sparse-PDF OCR, [0..1] coordinate overlays, RTL form digitalisation, and audit provenance.",
-                      "End-to-end Document Intelligence: hybrid OCR + Vision, SourceMatcher verification, ATS, and Grounded Q&A.",
-                    ],
-                  ].map(([dim, diy, kashfara]) => (
+                  ].map(([dim, diy, vendors, kashfara]) => (
                     <tr key={dim} className="hover:bg-[#F5F5F7]/50 transition-colors">
                       <td className="px-5 py-4 font-semibold text-black align-top">{dim}</td>
                       <td className="px-5 py-4 text-[#6E6E73] align-top">{diy}</td>
+                      <td className="px-5 py-4 text-[#6E6E73] align-top">{vendors}</td>
+                      <td className="px-5 py-4 text-black font-medium align-top">{kashfara}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Document Intelligence Platform Comparison */}
+      <section id="document-intelligence-platform" className="py-20 px-4 sm:px-6 bg-[#F5F5F7] border-t border-black/8">
+        <div className="max-w-6xl mx-auto space-y-10">
+          <div className="max-w-3xl space-y-3">
+            <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
+              DOCUMENT INTELLIGENCE PLATFORM
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-black">
+              Complete Enterprise Software — Not Just an OCR API.
+            </h2>
+            <p className="text-base text-[#6E6E73] leading-relaxed">
+              Where Azure Document Intelligence, Google Document AI, AWS Textract, and ABBYY stop at raw JSON extraction, Kashfara delivers an integrated workstation with deterministic proof-of-evidence, RTL form digitalisation, and grounded Document Q&amp;A.
+            </p>
+          </div>
+
+          <div className="apple-card rounded-3xl overflow-hidden bg-white">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-[#F5F5F7] border-b border-black/10 font-mono text-[11px] uppercase text-[#6E6E73]">
+                  <tr>
+                    <th className="px-5 py-4">Platform Capability</th>
+                    <th className="px-5 py-4">Azure DI / Google Doc AI / AWS Textract</th>
+                    <th className="px-5 py-4 text-black">Kashfara Document Intelligence</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/8">
+                  {[
+                    [
+                      "Arabic & Bilingual Document Corpus",
+                      "General multilingual models without GCC/MENA ZATCA, FTA, and bilingual contract specialization.",
+                      "Trained on 20M+ Arabic & English real-world invoices, bank statements, contracts, resumes, and government forms.",
+                    ],
+                    [
+                      "Verifiable Source Evidence",
+                      "Returns raw text polygons; no built-in semantic cross-verification against LLM answers.",
+                      "SourceMatcher + EvidenceValidator link every extracted field and Q&A citation to exact [0..1] page coordinates.",
+                    ],
+                    [
+                      "Document Chatbot & RTL Digital Forms",
+                      "Not included — requires building separate RAG, citation UI, and RTL form engines.",
+                      "Built-in Grounded Document Q&A with clickable page citations + instant RTL Digital Forms (JSON/CSV export).",
+                    ],
+                    [
+                      "Deployment & Pricing Model",
+                      "Per-page cloud API metering; sensitive banking/government files leave your perimeter.",
+                      "Single compact 4B footprint — runs statelessly in cloud or 100% air-gapped on-premise with zero per-token fees.",
+                    ],
+                  ].map(([cap, cloud, kashfara]) => (
+                    <tr key={cap} className="hover:bg-[#F5F5F7]/50 transition-colors">
+                      <td className="px-5 py-4 font-semibold text-black align-top">{cap}</td>
+                      <td className="px-5 py-4 text-[#6E6E73] align-top">{cloud}</td>
+                      <td className="px-5 py-4 text-black font-medium align-top">{kashfara}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Proprietary 4B LLM & Vision LLM Comparison */}
+      <section id="vision-llm" className="py-20 px-4 sm:px-6 bg-white border-t border-black/8">
+        <div className="max-w-6xl mx-auto space-y-10">
+          <div className="max-w-3xl space-y-3">
+            <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
+              PROPRIETARY 4B LLM &amp; VISION LLM (VLM)
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-black">
+              4 Billion Parameters. Trained on 20M+ Arabic &amp; English Documents.
+            </h2>
+            <p className="text-base text-[#6E6E73] leading-relaxed">
+              Kashfara is built on our own proprietary 4-billion-parameter (4B) LLM and Vision LLM (VLM) trained specifically on over 20 million Arabic and English documents. Here is where Kashfara&apos;s 4B VLM stands against general foundation models.
+            </p>
+          </div>
+
+          <div className="apple-card rounded-3xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-[#F5F5F7] border-b border-black/10 font-mono text-[11px] uppercase text-[#6E6E73]">
+                  <tr>
+                    <th className="px-5 py-4">Model Dimension</th>
+                    <th className="px-5 py-4">General LLMs (Falcon, Llama, GPT-4o, Gemini)</th>
+                    <th className="px-5 py-4">Generic Open VLMs (Qwen-VL, LLaVA)</th>
+                    <th className="px-5 py-4 text-black">Kashfara 4B LLM &amp; Vision LLM</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/8">
+                  {[
+                    [
+                      "Training Specialization",
+                      "Broad web text & chat; not specialized for scanned Arabic RTL ledgers or sparse vector PDFs.",
+                      "General image captioning; struggles with dense bilingual Arabic-English tables and stamps.",
+                      "Trained on 20M+ Arabic & English documents (invoices, bank statements, contracts, forms, ledgers).",
+                    ],
+                    [
+                      "Parameter Footprint & Hardware",
+                      "70B–400B+ parameters requiring multi-GPU clusters or external cloud APIs.",
+                      "7B–72B+ weights without integrated deterministic OCR fallback.",
+                      "Compact 4B parameter architecture — fast, predictable latency on modest on-prem GPUs.",
+                    ],
+                    [
+                      "Coordinate & Audit Grounding",
+                      "No native [0..1] visual bounding-box grounding; prone to hallucinated numbers.",
+                      "Unverified model-proposed boxes with no SourceMatcher audit check.",
+                      "Hybrid sparse-PDF OCR + Vision + SourceMatcher enforcing VERIFIED / NEEDS_REVIEW / NOT_FOUND.",
+                    ],
+                    [
+                      "Air-Gapped Enterprise Readiness",
+                      "Frontier models are cloud-only; open weights lack security & document pipeline.",
+                      "Raw weights only — no UI, no form digitalisation, no spreadsheet engine.",
+                      "Full air-gapped software suite: Document Intelligence + Grounded Q&A + Agentic Spreadsheet.",
+                    ],
+                  ].map(([dim, genLlm, genVlm, kashfara]) => (
+                    <tr key={dim} className="hover:bg-[#F5F5F7]/50 transition-colors">
+                      <td className="px-5 py-4 font-semibold text-black align-top">{dim}</td>
+                      <td className="px-5 py-4 text-[#6E6E73] align-top">{genLlm}</td>
+                      <td className="px-5 py-4 text-[#6E6E73] align-top">{genVlm}</td>
                       <td className="px-5 py-4 text-black font-medium align-top">{kashfara}</td>
                     </tr>
                   ))}
@@ -679,8 +810,12 @@ export function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {[
               {
-                q: "How is Kashfara different from building an internal solution with our own engineers?",
-                a: "Wrapping an OCR library and calling a generic LLM API fails on real-world enterprise documents. Standard PDF parsers silently drop vector-rendered bodies, naive OCR scrambles Arabic RTL tables, and raw LLMs invent bounding boxes. Kashfara ships a production-hardened hybrid parser, sparse-PDF OCR fallback, Arabic diacritic normalization, deterministic SourceMatcher evidence verification, truncated-JSON repair, and multi-engine failover out of the box.",
+                q: "Does Kashfara have its own proprietary LLM and Vision LLM?",
+                a: "Yes. Kashfara is a complete proprietary enterprise software platform powered by our own 4-billion-parameter (4B) LLM and Vision LLM (VLM) trained on over 20 million Arabic and English documents—not a thin wrapper around third-party chat APIs.",
+              },
+              {
+                q: "How is Kashfara different from Azure Document Intelligence, Google Document AI, or building in-house?",
+                a: "Azure DI and major cloud APIs charge per-page cloud fees, require external data egress, and lack built-in Document Q&A, RTL Digital Forms, and Agentic Spreadsheets. Naive in-house builds break on sparse vector PDFs and Arabic RTL tables. Kashfara ships our proprietary 4B LLM + VLM, hybrid sparse-PDF OCR fallback, deterministic SourceMatcher evidence verification, and air-gapped on-premise deployment out of the box.",
               },
               {
                 q: "What technical edge cases and production risks does Kashfara solve?",
@@ -692,15 +827,11 @@ export function LandingPage() {
               },
               {
                 q: "What is the time-to-value and total cost of ownership compared to in-house development?",
-                a: "Instead of spending months of senior engineering time building, debugging, and maintaining OCR pipelines, coordinate alignment, model failover, and air-gapped packaging, teams deploy Kashfara immediately with a compact 4B parameter footprint and predictable total cost of ownership.",
+                a: "Instead of spending months of senior engineering time building, debugging, and maintaining OCR pipelines, coordinate alignment, model failover, and air-gapped packaging, teams deploy Kashfara immediately with our compact 4B parameter footprint and predictable total cost of ownership.",
               },
               {
                 q: "Does Kashfara support Arabic RTL and bilingual documents?",
-                a: "Yes. Kashfara preserves right-to-left Arabic script, English LTR text, and mixed Arabic-English tables in invoices, bank statements, contracts, leases, and forms, and provides English translations for non-English documents.",
-              },
-              {
-                q: "What file formats can I test in the Live Demo?",
-                a: "You can upload PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, and XLSX files in the Document Intelligence Live Demo at kashfara.com/demo, and Excel/CSV workbooks in Kashfara Spreadsheet at kashfara.com/spreadsheet/demo.",
+                a: "Yes. Trained on 20M+ Arabic and English documents, Kashfara preserves right-to-left Arabic script, English LTR text, and mixed Arabic-English tables in invoices, bank statements, contracts, leases, and forms, and provides English translations for non-English documents.",
               },
             ].map((item) => (
               <article key={item.q} className="apple-surface rounded-2xl p-6 space-y-2">

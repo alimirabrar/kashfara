@@ -133,13 +133,13 @@ const JSON_LD = {
       operatingSystem: "Web, Linux, On-Premise Air-Gapped",
       url: SITE_URL,
       description:
-        "4-billion-parameter Arabic LLM and OCR + Vision document intelligence platform for Arabic RTL, English, and bilingual documents. Features sparse-PDF OCR fallback, deterministic bounding-box proof of evidence, 5 smart templates, automatic form digitalisation, grounded document chatbot Q&A, and an air-gapped agentic spreadsheet.",
+        "Complete proprietary enterprise software powered by Kashfara's own 4-billion-parameter (4B) LLM and Vision LLM (VLM) trained on 20M+ Arabic and English documents. Combines sparse-PDF OCR fallback, deterministic bounding-box proof of evidence, 5 smart templates, automatic RTL form digitalisation, grounded document chatbot Q&A, and an air-gapped agentic spreadsheet.",
       audience: {
         "@type": "BusinessAudience",
         audienceType: "Enterprise Finance, Banking, Legal, Logistics, Real Estate, and Healthcare Teams",
       },
       featureList: [
-        "Arabic RTL and English bilingual OCR + 4B Vision understanding",
+        "Proprietary 4B LLM & Vision LLM (VLM) trained on 20M+ Arabic & English documents",
         "Hybrid sparse-PDF detection with automatic dual-script (eng+ara) OCR fallback",
         "Deterministic SourceMatcher and [0..1] bounding-box proof-of-evidence verification",
         "5 smart templates (Resume + ATS Scorer, Invoice, Bank Statement, Contract, Receipt) plus unstructured entity and clause extraction",
@@ -153,10 +153,18 @@ const JSON_LD = {
       mainEntity: [
         {
           "@type": "Question",
-          name: "How is Kashfara different from building an internal solution with our own engineers?",
+          name: "Does Kashfara have its own proprietary LLM and Vision LLM?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Wrapping an OCR library and calling a generic LLM API fails on real-world enterprise documents. Standard PDF parsers silently drop vector-rendered bodies, naive OCR scrambles Arabic RTL tables, and raw LLMs invent bounding boxes. Kashfara ships a production-hardened hybrid parser, sparse-PDF OCR fallback, Arabic diacritic normalization, deterministic SourceMatcher evidence verification, truncated-JSON repair, and multi-engine failover out of the box.",
+            text: "Yes. Kashfara is a complete proprietary enterprise software platform powered by our own 4-billion-parameter (4B) LLM and Vision LLM (VLM) trained on over 20 million Arabic and English documents—not a thin wrapper around third-party chat APIs.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "How is Kashfara different from Azure Document Intelligence, Google Document AI, or building in-house?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Azure DI and major cloud APIs charge per-page cloud fees, require external data egress, and lack built-in Document Q&A, RTL Digital Forms, and Agentic Spreadsheets. Naive in-house builds break on sparse vector PDFs and Arabic RTL tables. Kashfara ships our proprietary 4B LLM + VLM, hybrid sparse-PDF OCR fallback, deterministic SourceMatcher evidence verification, and air-gapped on-premise deployment out of the box.",
           },
         },
         {
