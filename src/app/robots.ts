@@ -5,7 +5,16 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/demo", "/spreadsheet", "/spreadsheet/demo", "/llms.txt", "/llms-full.txt"],
+        allow: [
+          "/",
+          "/demo",
+          "/spreadsheet",
+          "/spreadsheet/demo",
+          "/voice-studio",
+          "/voice-studio/demo",
+          "/llms.txt",
+          "/llms-full.txt",
+        ],
         disallow: ["/api/"],
       },
       {
@@ -20,7 +29,16 @@ export default function robots(): MetadataRoute.Robots {
           "Googlebot",
           "Google-Extended",
         ],
-        allow: ["/", "/demo", "/spreadsheet", "/spreadsheet/demo", "/llms.txt", "/llms-full.txt"],
+        allow: [
+          "/",
+          "/demo",
+          "/spreadsheet",
+          "/spreadsheet/demo",
+          "/voice-studio",
+          "/voice-studio/demo",
+          "/llms.txt",
+          "/llms-full.txt",
+        ],
         disallow: ["/api/"],
       },
     ],

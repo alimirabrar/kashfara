@@ -347,9 +347,11 @@ export function LandingPage() {
             transition={{ duration: 0.55, delay: 0.12 }}
             className="text-base sm:text-xl text-[#6E6E73] max-w-2xl mx-auto leading-relaxed"
           >
-            Kashfara is a complete proprietary enterprise software platform powered by our own{" "}
+            Kashfara is a complete proprietary enterprise AI software suite powered by our own{" "}
             <span className="text-black font-medium">4-billion-parameter (4B) LLM and Vision LLM (VLM) trained on 20M+ Arabic &amp; English documents</span>{" "}
-            — combining high-speed Arabic &amp; English OCR, unstructured entity &amp; clause extraction, grounded Document Q&amp;A, and an air-gapped Agentic Spreadsheet.
+            — uniting <strong className="text-black font-medium">Kashfara Vision</strong> (Arabic OCR &amp; Document Intelligence),{" "}
+            <strong className="text-black font-medium">Kashfara Spreadsheet</strong> (Air-Gapped Agentic Excel), and{" "}
+            <strong className="text-black font-medium">Kashfara Voice Studio</strong> (Low-Compute On-Premise TTS + STT).
           </motion.p>
 
           <motion.div
@@ -366,13 +368,53 @@ export function LandingPage() {
               <ArrowRight className="w-4 h-4" />
             </Link>
             <a
-              href="mailto:enquiry@kashfara.com?subject=Kashfara%20Vision%20Enterprise%20Sales"
+              href="mailto:enquiry@kashfara.com?subject=Kashfara%20Enterprise%20Sales"
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full apple-glass text-black text-sm font-semibold hover:bg-[#F5F5F7] transition-all"
             >
               <Mail className="w-4 h-4" />
               <span>Contact Sales</span>
             </a>
           </motion.div>
+
+          {/* 3-Product Suite Discovery Bar for Users, Search & AI Crawlers */}
+          <div className="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto text-left">
+            <Link
+              href="/demo"
+              className="apple-surface rounded-2xl p-4 hover:border-black/25 transition-all group"
+            >
+              <div className="text-xs font-semibold text-black flex items-center justify-between">
+                <span>Kashfara Vision</span>
+                <ArrowRight className="w-3.5 h-3.5 text-[#6E6E73] group-hover:text-black" />
+              </div>
+              <p className="text-[11px] text-[#6E6E73] mt-1">
+                4B Arabic &amp; English OCR, Document Chatbot &amp; RTL Forms
+              </p>
+            </Link>
+            <Link
+              href="/spreadsheet"
+              className="apple-surface rounded-2xl p-4 hover:border-black/25 transition-all group"
+            >
+              <div className="text-xs font-semibold text-black flex items-center justify-between">
+                <span>Kashfara Spreadsheet</span>
+                <ArrowRight className="w-3.5 h-3.5 text-[#6E6E73] group-hover:text-black" />
+              </div>
+              <p className="text-[11px] text-[#6E6E73] mt-1">
+                Air-Gapped Agentic Excel with k= In-Cell AI &amp; Charts
+              </p>
+            </Link>
+            <Link
+              href="/voice-studio"
+              className="apple-surface rounded-2xl p-4 hover:border-black/25 transition-all group"
+            >
+              <div className="text-xs font-semibold text-black flex items-center justify-between">
+                <span>Kashfara Voice Studio</span>
+                <ArrowRight className="w-3.5 h-3.5 text-[#6E6E73] group-hover:text-black" />
+              </div>
+              <p className="text-[11px] text-[#6E6E73] mt-1">
+                Low-Compute On-Premise TTS + STT Voice AI (jobshop.ai)
+              </p>
+            </Link>
+          </div>
         </div>
 
         {/* Interactive Animated Arabic & English Extraction Showcase */}
@@ -853,6 +895,14 @@ export function LandingPage() {
               {
                 q: "Does Kashfara support Arabic RTL and bilingual documents?",
                 a: "Yes. Trained on 20M+ Arabic and English documents, Kashfara preserves right-to-left Arabic script, English LTR text, and mixed Arabic-English tables in invoices, bank statements, contracts, leases, and forms, and provides English translations for non-English documents.",
+              },
+              {
+                q: "What is Kashfara Spreadsheet and how does k= work?",
+                a: "Kashfara Spreadsheet (kashfara.com/spreadsheet) is an air-gapped agentic financial spreadsheet powered by Kashfara's 4B LLM trained on 20M+ Arabic and English documents and ledgers. Users type k= directly inside any cell instead of complex Excel formulas, color-code anomalies, generate pie/bar charts, and reconcile GCC banking ledgers with zero data leakage.",
+              },
+              {
+                q: "What is Kashfara Voice Studio and who uses it in production?",
+                a: "Kashfara Voice Studio (kashfara.com/voice-studio) is a low-computing enterprise voice model combining TTS and STT engineered for great output and permanent on-premise deployment with zero vendor lock-in. It is deployed in production by jobshop.ai to automate BPO recruitment interviews and analyze candidates' English speaking skills.",
               },
             ].map((item) => (
               <article key={item.q} className="apple-surface rounded-2xl p-6 space-y-2">

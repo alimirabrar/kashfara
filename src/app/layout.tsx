@@ -35,11 +35,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "KASHFARA VISION — Arabic OCR, Arabic LLM & Document Intelligence Chatbot",
-    template: "%s | KASHFARA VISION",
+    default: "KASHFARA — Enterprise AI Suite: Vision OCR, Agentic Spreadsheet & Voice Studio",
+    template: "%s | KASHFARA",
   },
   description:
-    "Kashfara Vision is a 4B parameter Arabic LLM & OCR Document Intelligence platform and Arabic Document Chatbot. Extract fields, tables, entities, and digital forms from Arabic & English PDFs with proof of evidence.",
+    "Kashfara is an enterprise AI suite powered by our proprietary 4B LLM & Vision LLM trained on 20M+ Arabic & English documents: Kashfara Vision (Arabic OCR & Document Intelligence), Kashfara Spreadsheet (Air-Gapped Agentic Excel with k= AI), and Kashfara Voice Studio (On-Premise TTS + STT).",
   keywords: [
     "Arabic OCR",
     "Arabic LLM",
@@ -86,10 +86,10 @@ export const metadata: Metadata = {
     locale: "en_US",
     alternateLocale: ["ar_AE", "ar_SA"],
     url: SITE_URL,
-    siteName: "KASHFARA VISION",
-    title: "KASHFARA VISION — Arabic OCR, Arabic LLM & Document Intelligence Chatbot",
+    siteName: "KASHFARA",
+    title: "KASHFARA — Vision OCR, Agentic Spreadsheet & On-Premise Voice Studio",
     description:
-      "4B parameter Arabic LLM, Arabic OCR & Document Chatbot for Arabic RTL, English, and bilingual documents. Extract fields, tables, and digital forms with proof of evidence.",
+      "Enterprise AI suite powered by Kashfara's 4B LLM & Vision LLM: Kashfara Vision (Arabic OCR & Document Intelligence), Kashfara Spreadsheet (Air-Gapped Agentic Excel), and Kashfara Voice Studio (On-Premise TTS + STT).",
   },
   twitter: {
     card: "summary_large_image",
@@ -116,16 +116,16 @@ const JSON_LD = {
     {
       "@type": "Organization",
       "@id": `${SITE_URL}/#organization`,
-      name: "KASHFARA VISION",
+      name: "KASHFARA",
       url: SITE_URL,
       description:
-        "Enterprise multimodal document intelligence platform specializing in Arabic and English OCR + Vision understanding.",
+        "Enterprise AI software company building Kashfara Vision (Arabic & English 4B LLM Document Intelligence), Kashfara Spreadsheet (Air-Gapped Agentic Excel), and Kashfara Voice Studio (Low-Compute On-Premise TTS + STT).",
     },
     {
       "@type": "WebSite",
       "@id": `${SITE_URL}/#website`,
       url: SITE_URL,
-      name: "KASHFARA VISION",
+      name: "KASHFARA",
       publisher: { "@id": `${SITE_URL}/#organization` },
       inLanguage: ["en", "ar"],
     },
@@ -134,9 +134,9 @@ const JSON_LD = {
       name: "KASHFARA VISION",
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web, Linux, On-Premise Air-Gapped",
-      url: SITE_URL,
+      url: `${SITE_URL}/demo`,
       description:
-        "Complete proprietary enterprise software powered by Kashfara's own 4-billion-parameter (4B) LLM and Vision LLM (VLM) trained on 20M+ Arabic and English documents. Combines sparse-PDF OCR fallback, deterministic bounding-box proof of evidence, 5 smart templates, automatic RTL form digitalisation, grounded document chatbot Q&A, and an air-gapped agentic spreadsheet.",
+        "Complete proprietary enterprise software powered by Kashfara's own 4-billion-parameter (4B) LLM and Vision LLM (VLM) trained on 20M+ Arabic and English documents. Combines sparse-PDF OCR fallback, deterministic bounding-box proof of evidence, 5 smart templates, automatic RTL form digitalisation, and grounded document chatbot Q&A.",
       audience: {
         "@type": "BusinessAudience",
         audienceType: "Enterprise Finance, Banking, Legal, Logistics, Real Estate, and Healthcare Teams",
@@ -148,9 +148,37 @@ const JSON_LD = {
         "5 smart templates (Resume + ATS Scorer, Invoice, Bank Statement, Contract, Receipt) plus unstructured entity and clause extraction",
         "Automatic digital form generation with Arabic RTL support, JSON, and CSV export",
         "Document-grounded chatbot Q&A with clickable page citations",
-        "Kashfara Spreadsheet: k= in-cell AI prompts, pie/bar charts, and ledger reconciliation",
-        "Kashfara Voice Studio: low-compute on-premise TTS + STT voice AI with zero vendor lock-in",
         "Air-gapped on-premise deployment with zero external data leakage",
+      ],
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "KASHFARA SPREADSHEET",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web, Linux, On-Premise Air-Gapped",
+      url: `${SITE_URL}/spreadsheet`,
+      description:
+        "Air-gapped agentic financial spreadsheet powered by Kashfara's 4B LLM trained on 20M+ Arabic and English documents and ledgers. Supports k= in-cell AI prompts, range-aware copilot editing, cell coloring, pie/bar charts, and Middle East banking ledger reconciliation.",
+      featureList: [
+        "k= in-cell AI prompts replacing complex Excel formulas",
+        "Range-aware AI copilot for banking ledger reconciliation and VAT/ZATCA calculations",
+        "Automated cell coloring, pie/bar chart generation, and executive reports",
+        "Air-gapped on-premise deployment with zero token limits and zero data leakage",
+      ],
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "KASHFARA VOICE STUDIO",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web, Linux, On-Premise Air-Gapped",
+      url: `${SITE_URL}/voice-studio`,
+      description:
+        "Low-computing enterprise voice AI model combining Text-to-Speech (TTS) and Speech-to-Text (STT) engineered for great output and permanent on-premise deployment with zero vendor lock-in. Proven in production by jobshop.ai for BPO hiring and English speaking skill evaluation.",
+      featureList: [
+        "Unified low-compute TTS + STT voice architecture",
+        "Permanent on-premise deployment with zero vendor lock-in",
+        "Automated BPO candidate interviews and English speaking skill analysis (proven by jobshop.ai)",
+        "Plain-language configuration for recruitment and enterprise sales",
       ],
     },
     {
@@ -210,6 +238,22 @@ const JSON_LD = {
           acceptedAnswer: {
             "@type": "Answer",
             text: "You can upload PDF, PNG, JPG, WEBP, TIFF, DOCX, PPTX, and XLSX files in the Document Intelligence Live Demo at kashfara.com/demo, and Excel/CSV workbooks in Kashfara Spreadsheet at kashfara.com/spreadsheet/demo.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "What is Kashfara Spreadsheet and how does k= work?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Kashfara Spreadsheet (kashfara.com/spreadsheet) is an air-gapped agentic financial spreadsheet powered by Kashfara's 4B LLM trained on 20M+ Arabic and English documents and ledgers. Users type k= directly inside any cell instead of complex Excel formulas, color-code anomalies, generate pie/bar charts, and reconcile GCC banking ledgers with zero data leakage.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "What is Kashfara Voice Studio and who uses it in production?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Kashfara Voice Studio (kashfara.com/voice-studio) is a low-computing enterprise voice model combining TTS and STT engineered for great output and permanent on-premise deployment with zero vendor lock-in. It is deployed in production by jobshop.ai to automate BPO recruitment interviews and analyze candidates' English speaking skills.",
           },
         },
       ],
