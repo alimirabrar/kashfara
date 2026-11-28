@@ -65,7 +65,9 @@ const SPREADSHEET_JSON_LD = {
         "Proprietary 4B LLM trained on 20M+ Arabic & English documents and financial tables",
         "k= in-cell AI prompts replacing complex Excel formulas",
         "Range-aware AI copilot for ledger reconciliation, VAT/ZATCA calculation, and Arabic-English translation",
+        "ERP & Core Banking integrations (SAP, Oracle NetSuite, Dynamics 365, Tally, MT940/ISO 20022)",
         "Automated cell coloring, pie/bar chart generation, and executive data analysis reports",
+        "Continuous 4B reasoning & tabular model upgrades with dedicated enterprise support",
         "Air-gapped on-premise deployment with zero token tension and zero data leakage",
       ],
     },
@@ -77,7 +79,7 @@ const SPREADSHEET_JSON_LD = {
           name: "What AI model powers Kashfara Spreadsheet?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Kashfara Spreadsheet is proprietary enterprise software powered by Kashfara's own 4-billion-parameter (4B) LLM trained on over 20 million Arabic and English documents, financial statements, invoices, and ledgers.",
+            text: "Kashfara Spreadsheet is proprietary enterprise software powered by Kashfara's own 4-billion-parameter (4B) LLM trained on over 20 million Arabic and English documents, financial statements, invoices, and ledgers, with continuous model upgrades.",
           },
         },
         {
@@ -86,6 +88,14 @@ const SPREADSHEET_JSON_LD = {
           acceptedAnswer: {
             "@type": "Answer",
             text: "Microsoft Copilot and Google Sheets Gemini require cloud data egress and per-seat cloud subscriptions. Kashfara Spreadsheet supports k= AI prompts inside every cell, Arabic-English bilingual ledger auditing, and deploys 100% air-gapped inside your banking or enterprise network with zero token limits and zero data leakage.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "What enterprise systems and banking feeds integrate with Kashfara Spreadsheet?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Kashfara Spreadsheet integrates with SAP, Oracle NetSuite, Microsoft Dynamics 365, Zoho Books, MT940/SWIFT/ISO 20022 banking feeds, and internal SQL/REST warehouses, while receiving continuous 4B model upgrades and dedicated enterprise support.",
           },
         },
       ],
@@ -384,6 +394,51 @@ export default function SpreadsheetMarketingPage() {
                   Microsoft Copilot and Google Sheets Gemini require cloud data egress and per-seat cloud subscriptions. Kashfara Spreadsheet supports k= AI prompts inside every cell, Arabic-English bilingual ledger auditing, and deploys 100% air-gapped inside your banking or enterprise network with zero token limits and zero data leakage.
                 </p>
               </article>
+            </div>
+          </div>
+        </section>
+
+        {/* Enterprise Integrations, Automations & Continuous Upgrades */}
+        <section id="spreadsheet-integrations" className="py-20 px-4 sm:px-6 bg-[#F5F5F7] border-t border-black/8">
+          <div className="max-w-6xl mx-auto space-y-12">
+            <div className="max-w-3xl space-y-3">
+              <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
+                INTEGRATIONS, AUTOMATIONS &amp; CONTINUOUS UPGRADES
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-black">
+                Deeply Integrated Into Your Financial Stack.
+              </h2>
+              <p className="text-base text-[#6E6E73]">
+                Connect Kashfara Spreadsheet to your ERP, core banking feeds, and tax pipelines—backed by continuous 4B model upgrades and dedicated enterprise engineering support.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  tag: "ERP & Accounting",
+                  title: "SAP, Oracle, Dynamics 365 & Zoho Books",
+                  desc: "Pull trial balances, AP/AR ledgers, and vendor sheets directly into Kashfara Spreadsheet and push reconciled exports back via REST or SQL connectors.",
+                },
+                {
+                  tag: "Banking & Treasury",
+                  title: "SWIFT, MT940, ISO 20022 & IBAN Feeds",
+                  desc: "Automate daily settlement matching, duplicate wire detection, and multi-currency AED/SAR/USD variance highlighting with one copilot command.",
+                },
+                {
+                  tag: "Always Smarter",
+                  title: "Continuous 4B Model Upgrades & Support",
+                  desc: "Receive ongoing upgrades to our 4B reasoning & tabular models, ZATCA/UAE VAT rule packs, RBAC audit trails, and direct enterprise engineering support.",
+                },
+              ].map((item) => (
+                <div key={item.title} className="apple-card rounded-3xl p-7 bg-white space-y-2.5">
+                  <span className="inline-block text-[11px] font-mono px-2.5 py-1 rounded-full bg-[#F5F5F7] text-[#6E6E73]">
+                    {item.tag}
+                  </span>
+                  <h3 className="text-base font-semibold text-black pt-1">{item.title}</h3>
+                  <p className="text-sm text-[#6E6E73] leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>

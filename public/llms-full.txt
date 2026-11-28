@@ -46,6 +46,21 @@ Hiring a few engineers to "hook up OCR + an LLM API" fails in enterprise product
 ## 4. Verified System Specifications & Operational Metrics
 - **Proprietary Core Model**: Kashfara 4-Billion-Parameter (4B) LLM & Vision LLM (VLM)
 - **Training Corpus**: 20 Million+ (20M+) Arabic and English documents, financial ledgers, invoices, contracts, and forms
+- **Document Intelligence Integrations & Support**: Deep integration into SAP, Oracle, Microsoft Dynamics, ZATCA/FTA VAT portals, Core Banking KYC/AML, Workday/SuccessFactors ATS, and SharePoint/DMS via REST/Webhooks, with continuous 4B LLM + VLM + OCR upgrades and 24/7 enterprise support.
+- **Kashfara Spreadsheet Integrations & Support**: Integrates with SAP, Oracle NetSuite, Dynamics 365, Zoho Books, SWIFT/MT940/ISO 20022 banking feeds, and SQL/REST warehouses, with continuous 4B tabular model upgrades.
+
+## 5. Kashfara Voice Studio — Enterprise Suite, Licensing & Why Enterprises Choose It
+- **Architecture**: Unified low-computing Reasoning Text Model + Speech-to-Text (STT) + Text-to-Speech (TTS) engineered for great output and permanent on-premise server deployment with zero vendor lock-in.
+- **Enterprise Pricing & Licensing**:
+  - **Yearly Enterprise License**: **$50,000 / year** (on-premise server deployment, zero per-minute cloud fees).
+  - **Lifetime Perpetual License**: **Talk to Sales** (`enquiry@kashfara.com`) for permanent ownership.
+- **Included in Both Licenses**:
+  - Continuous updates to Reasoning Text, STT, and TTS models so the AI constantly gets smarter.
+  - Custom On-Premise **Voice Cloning**.
+  - Built-in **CRM Dashboard** plus connectors for existing CRMs (Salesforce, HubSpot, Zoho, Dynamics 365, custom REST/Webhooks).
+  - In-house **SIP, Asterisk, FreeSWITCH, Avaya, Cisco, and GSM gateway** telephony integrations.
+  - RBAC, PII redaction, full call/transcript audit logs, and dedicated enterprise engineering support.
+- **Proven Production Client (`jobshop.ai`)**: `jobshop.ai` bought and deployed Kashfara Voice Studio to automate candidate screening, place candidates in BPO roles, and analyze candidates' English speaking skills.
 - **Supported Formats**: 9 document formats (PDF, PNG, JPG, JPEG, WEBP, TIFF, DOCX, PPTX, XLSX) plus XLSX/XLS/CSV in Kashfara Spreadsheet
 - **Workload Limits**: Up to 10 pages / 20 MB per document in Live Demo; unlimited on-premise air-gapped deployment
 - **Instant Local Marking Latency**: Sub-50ms local heuristic field & bounding-box marking prior to AI reasoning

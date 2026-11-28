@@ -18,15 +18,17 @@ import {
 
 export const metadata: Metadata = {
   title: {
-    absolute: "KASHFARA VOICE STUDIO — Low-Compute On-Premise TTS + STT Voice AI",
+    absolute: "KASHFARA VOICE STUDIO — On-Premise Enterprise Voice AI, Voice Cloning & Telephony",
   },
   description:
-    "Low-computing enterprise voice model combining TTS and STT engineered for great output and permanent on-premise deployment with zero vendor lock-in. Proven in production with jobshop.ai for BPO recruitment and English speaking skill analysis.",
+    "Low-computing enterprise voice model combining Reasoning, STT, and TTS with Voice Cloning, CRM Dashboard, SIP/GSM telephony integration, continuous model upgrades, and permanent on-premise deployment. $50,000/year or Lifetime Enterprise License. Proven by jobshop.ai.",
   keywords: [
     "Kashfara Voice Studio",
     "on-premise voice AI",
     "low compute TTS STT",
-    "enterprise voice model",
+    "enterprise voice cloning",
+    "SIP GSM voice AI integration",
+    "CRM voice AI dashboard",
     "no vendor lock-in voice AI",
     "BPO candidate voice screening",
     "English speaking skill assessment AI",
@@ -36,16 +38,16 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "KASHFARA VOICE STUDIO",
-    title: "KASHFARA VOICE STUDIO — Low-Compute On-Premise TTS + STT Voice AI",
+    title: "KASHFARA VOICE STUDIO — Enterprise Voice AI, Voice Cloning & SIP/CRM Suite",
     description:
-      "Deploy our low-computing TTS + STT voice model on-premise forever with zero vendor lock-in. Trusted by jobshop.ai for BPO hiring and English speaking evaluation.",
+      "Deploy our low-compute Reasoning + STT + TTS model on-premise with Voice Cloning, CRM Dashboard, SIP/GSM telephony, and continuous model upgrades. $50,000/year or Lifetime License.",
     url: "https://kashfara.com/voice-studio",
   },
   twitter: {
     card: "summary_large_image",
-    title: "KASHFARA VOICE STUDIO — Low-Compute On-Premise TTS + STT",
+    title: "KASHFARA VOICE STUDIO — On-Premise Enterprise Voice Suite",
     description:
-      "Enterprise voice AI combining TTS + STT for low-compute on-premise deployment with zero vendor lock-in. Proven by jobshop.ai.",
+      "Reasoning + STT + TTS, Voice Cloning, CRM & SIP/GSM integrations, continuous upgrades, and dedicated support. $50,000/year or Lifetime On-Premise License.",
   },
 };
 
@@ -56,15 +58,38 @@ const VOICE_JSON_LD = {
       "@type": "SoftwareApplication",
       name: "KASHFARA VOICE STUDIO",
       applicationCategory: "BusinessApplication",
-      operatingSystem: "Linux, On-Premise Air-Gapped, Web",
+      operatingSystem: "Linux, On-Premise Air-Gapped, Kubernetes, Web",
       url: "https://kashfara.com/voice-studio",
       description:
-        "Enterprise low-computing voice model combining Text-to-Speech (TTS) and Speech-to-Text (STT) engineered for high-clarity output and permanent on-premise deployment with zero vendor lock-in. Proven in production by jobshop.ai for automated BPO recruitment and candidate English speaking skill analysis.",
+        "Enterprise low-computing voice AI suite combining continuously updated Reasoning Text, Speech-to-Text (STT), and Text-to-Speech (TTS) models with custom Voice Cloning, built-in CRM Dashboard, existing CRM connectors, in-house SIP/GSM telephony integration, and permanent on-premise deployment with zero vendor lock-in. Proven in production by jobshop.ai.",
+      offers: [
+        {
+          "@type": "Offer",
+          name: "Yearly Enterprise License",
+          price: "50000",
+          priceCurrency: "USD",
+          priceSpecification: {
+            "@type": "UnitPriceSpecification",
+            price: "50000",
+            priceCurrency: "USD",
+            unitText: "YEAR",
+          },
+          url: "https://kashfara.com/voice-studio#voice-pricing",
+        },
+        {
+          "@type": "Offer",
+          name: "Lifetime On-Premise License (Talk to Sales)",
+          url: "mailto:enquiry@kashfara.com?subject=Kashfara%20Voice%20Studio%20Lifetime%20License",
+        },
+      ],
       featureList: [
-        "Unified low-computing TTS + STT voice architecture engineered for great output",
-        "Permanent on-premise and air-gapped deployment with zero vendor lock-in",
-        "Automated BPO candidate screening and English speaking fluency analysis",
-        "Structured candidate inputs and evaluation outputs for recruitment and sales",
+        "Continuously updated Reasoning Text Model, STT Model, and TTS Model",
+        "Custom on-premise Voice Cloning for brand and agent voices",
+        "Built-in CRM Dashboard plus integrations with existing CRMs (Salesforce, HubSpot, Zoho, Dynamics 365, REST/Webhooks)",
+        "In-house SIP trunk, Asterisk, FreeSWITCH, Avaya, Cisco, and GSM gateway telephony integrations",
+        "Permanent on-premise & air-gapped server deployment with zero vendor lock-in",
+        "Dedicated enterprise engineering support team, RBAC, PII redaction, and full audit logs",
+        "Automated BPO candidate screening and English speaking skill analysis (proven by jobshop.ai)",
       ],
     },
     {
@@ -72,10 +97,26 @@ const VOICE_JSON_LD = {
       mainEntity: [
         {
           "@type": "Question",
-          name: "What is Kashfara Voice Studio?",
+          name: "Why should an enterprise consider Kashfara Voice Studio over cloud voice APIs?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Kashfara Voice Studio is a low-computing enterprise voice AI model combining Text-to-Speech (TTS) and Speech-to-Text (STT) engineered for high-clarity output and permanent on-premise deployment with no vendor lock-in.",
+            text: "Cloud voice APIs charge compounding per-minute fees, send sensitive customer and candidate audio to third-party servers, and lock you into external vendors. Kashfara Voice Studio runs our low-compute Reasoning + STT + TTS stack on your own on-premise servers forever with zero per-minute fees, includes custom Voice Cloning, a built-in CRM Dashboard, existing CRM & SIP/GSM telephony integrations, continuous model upgrades, and dedicated enterprise support.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "What is included in the $50,000/year Yearly License vs. the Lifetime License?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Both the $50,000/year Yearly Enterprise License and the Lifetime On-Premise License (Talk to Sales at enquiry@kashfara.com) include the full enterprise suite: on-premise server deployment, continuous updates to our Reasoning, STT, and TTS models, custom Voice Cloning, built-in CRM Dashboard, existing CRM integrations, in-house SIP/GSM telephony configuration, and dedicated enterprise support.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Does Kashfara Voice Studio integrate with our existing CRM and in-house SIP or GSM telephony?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Yes. Kashfara Voice Studio connects directly to in-house SIP trunks, Asterisk, FreeSWITCH, Avaya, Cisco, and GSM gateways, and ships with a built-in CRM Dashboard plus two-way connectors for Salesforce, HubSpot, Zoho, Dynamics 365, and custom REST/Webhook CRMs.",
           },
         },
         {
@@ -290,6 +331,209 @@ export default function VoiceStudioPage() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </section>
+
+        {/* Complete Enterprise Capabilities, Voice Cloning, CRM & Telephony */}
+        <section id="enterprise-suite" className="py-20 px-4 sm:px-6 bg-[#F5F5F7] border-t border-black/8">
+          <div className="max-w-6xl mx-auto space-y-12">
+            <div className="max-w-3xl space-y-3">
+              <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
+                COMPLETE ENTERPRISE VOICE SUITE
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-black">
+                Everything Enterprises Need Before Deploying Voice AI.
+              </h2>
+              <p className="text-base text-[#6E6E73]">
+                Beyond low-compute TTS + STT, Kashfara Voice Studio ships with continuous model upgrades, custom voice cloning, built-in CRM workflows, and direct in-house SIP/GSM telephony integration.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  tag: "Always Smarter",
+                  title: "Continuous Reasoning, STT & TTS Upgrades",
+                  desc: "We constantly upgrade our reasoning text model, STT transcription engine, and TTS voice synthesis so your on-premise deployment gets smarter, faster, and more accurate over time.",
+                },
+                {
+                  tag: "Brand Identity",
+                  title: "On-Premise Custom Voice Cloning",
+                  desc: "Clone approved brand or executive voices inside your own infrastructure—maintain consistent tone across Arabic and English customer, sales, and BPO calls.",
+                },
+                {
+                  tag: "Built-In + Synced",
+                  title: "CRM Dashboard & Existing CRM Connectors",
+                  desc: "Includes a full built-in CRM call & candidate dashboard plus native sync to Salesforce, HubSpot, Zoho, Microsoft Dynamics 365, and custom REST/Webhook CRMs.",
+                },
+                {
+                  tag: "In-House Telecom",
+                  title: "SIP, GSM & Enterprise Telephony Ready",
+                  desc: "Connects directly to your in-house SIP trunks, Asterisk, FreeSWITCH, Avaya, Cisco, or GSM gateways—supporting concurrent inbound and outbound campaigns.",
+                },
+                {
+                  tag: "Security & Audit",
+                  title: "RBAC, PII Redaction & Full Call Audit Logs",
+                  desc: "Role-based access controls, encrypted on-prem call storage, automated PII masking, latency SLAs, and complete transcript + score audit trails for compliance teams.",
+                },
+                {
+                  tag: "White-Glove SLA",
+                  title: "Dedicated Enterprise Engineering Support",
+                  desc: "Best-in-class support team assisting with on-premise server sizing, telephony/SIP trunking, custom prompt & rubric tuning, and zero-downtime model updates.",
+                },
+              ].map((feat) => (
+                <div key={feat.title} className="apple-card rounded-3xl p-7 bg-white space-y-2.5">
+                  <span className="inline-block text-[11px] font-mono px-2.5 py-1 rounded-full bg-[#F5F5F7] text-[#6E6E73]">
+                    {feat.tag}
+                  </span>
+                  <h3 className="text-base font-semibold text-black pt-1">{feat.title}</h3>
+                  <p className="text-sm text-[#6E6E73] leading-relaxed">{feat.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Enterprise Pricing: Yearly ($50,000/yr) vs Lifetime (Talk to Sales) */}
+        <section id="voice-pricing" className="py-20 px-4 sm:px-6 bg-white border-t border-black/8">
+          <div className="max-w-5xl mx-auto space-y-12">
+            <div className="text-center max-w-2xl mx-auto space-y-3">
+              <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
+                ENTERPRISE LICENSING · ZERO VENDOR LOCK-IN
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-black">
+                Simple, Sovereign Enterprise Licensing.
+              </h2>
+              <p className="text-base text-[#6E6E73]">
+                Both licenses include the complete enterprise voice suite, on-premise server deployment, continuous Reasoning + STT + TTS upgrades, Voice Cloning, CRM &amp; SIP/GSM integrations, and our dedicated support team.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Yearly License */}
+              <div className="apple-card rounded-3xl p-8 flex flex-col justify-between space-y-6 border border-black/10">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono uppercase tracking-wider px-3 py-1 rounded-full bg-[#F5F5F7] text-black">
+                      Yearly Enterprise License
+                    </span>
+                    <span className="text-xs font-mono text-[#6E6E73]">On-Premise</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl sm:text-5xl font-semibold tracking-tight text-black">
+                      $50,000
+                    </span>
+                    <span className="text-sm text-[#6E6E73] font-mono">/ year</span>
+                  </div>
+                  <p className="text-sm text-[#6E6E73]">
+                    Full on-premise deployment with predictable annual licensing—no per-minute cloud voice taxes.
+                  </p>
+                  <ul className="space-y-2.5 text-sm text-[#1D1D1F] pt-2">
+                    {[
+                      "Continuous Reasoning Text, STT & TTS model upgrades",
+                      "Custom On-Premise Voice Cloning",
+                      "Built-in CRM Dashboard + Existing CRM integrations",
+                      "In-house SIP / GSM / PBX telephony configuration",
+                      "Dedicated Enterprise Support Team & SLA",
+                      "RBAC, PII redaction, and full audit logging",
+                    ].map((line) => (
+                      <li key={line} className="flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-black shrink-0 mt-0.5" />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <a
+                  href="mailto:enquiry@kashfara.com?subject=Kashfara%20Voice%20Studio%20Yearly%20Enterprise%20License%20($50,000/yr)"
+                  className="w-full py-3.5 rounded-full bg-black hover:bg-[#1D1D1F] text-white text-sm font-semibold text-center transition-all"
+                >
+                  Get Yearly License — enquiry@kashfara.com
+                </a>
+              </div>
+
+              {/* Lifetime License */}
+              <div className="rounded-3xl p-8 bg-black text-white flex flex-col justify-between space-y-6 shadow-xl">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono uppercase tracking-wider px-3 py-1 rounded-full bg-white/15 text-white">
+                      Lifetime Perpetual License
+                    </span>
+                    <span className="text-xs font-mono text-white/70">Own Forever</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl sm:text-5xl font-semibold tracking-tight text-white">
+                      Talk to Sales
+                    </span>
+                  </div>
+                  <p className="text-sm text-white/75">
+                    Perpetual on-premise ownership for banks, governments, and large BPOs requiring permanent sovereignty.
+                  </p>
+                  <ul className="space-y-2.5 text-sm text-white/90 pt-2">
+                    {[
+                      "All Yearly Enterprise features included perpetually",
+                      "Continuous Reasoning Text, STT & TTS model upgrades",
+                      "Custom On-Premise Voice Cloning & dialect tuning",
+                      "Built-in CRM Dashboard + Existing CRM integrations",
+                      "In-house SIP / GSM / multi-node telephony setup",
+                      "Priority 24/7 Enterprise Support & onboarding",
+                    ].map((line) => (
+                      <li key={line} className="flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-white shrink-0 mt-0.5" />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <a
+                  href="mailto:enquiry@kashfara.com?subject=Kashfara%20Voice%20Studio%20Lifetime%20License%20Inquiry"
+                  className="w-full py-3.5 rounded-full bg-white hover:bg-white/90 text-black text-sm font-semibold text-center transition-all"
+                >
+                  Talk to Sales — enquiry@kashfara.com
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Enterprise Buyer FAQ */}
+        <section id="voice-faq" className="py-16 px-4 sm:px-6 bg-[#F5F5F7] border-t border-black/8">
+          <div className="max-w-5xl mx-auto space-y-8">
+            <div className="text-center space-y-2">
+              <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
+                ENTERPRISE EVALUATION FAQ
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-semibold text-black">
+                Why Enterprises Choose Kashfara Voice Studio
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {[
+                {
+                  q: "Why should an enterprise consider Kashfara Voice Studio over cloud voice APIs?",
+                  a: "Cloud voice APIs charge compounding per-minute fees, send sensitive customer and candidate audio to third-party servers, and lock you into external vendors. Kashfara Voice Studio runs our low-compute Reasoning + STT + TTS stack on your own on-premise servers forever with zero per-minute fees, includes custom Voice Cloning, a built-in CRM Dashboard, existing CRM & SIP/GSM telephony integrations, continuous model upgrades, and dedicated enterprise support.",
+                },
+                {
+                  q: "What is included in the $50,000/year Yearly License vs. the Lifetime License?",
+                  a: "Both the $50,000/year Yearly Enterprise License and the Lifetime On-Premise License (Talk to Sales at enquiry@kashfara.com) include the full enterprise suite: on-premise server deployment, continuous updates to our Reasoning, STT, and TTS models, custom Voice Cloning, built-in CRM Dashboard, existing CRM integrations, in-house SIP/GSM telephony configuration, and dedicated enterprise support.",
+                },
+                {
+                  q: "Does Kashfara Voice Studio integrate with our existing CRM and in-house SIP or GSM telephony?",
+                  a: "Yes. Kashfara Voice Studio connects directly to in-house SIP trunks, Asterisk, FreeSWITCH, Avaya, Cisco, and GSM gateways, and ships with a built-in CRM Dashboard plus two-way connectors for Salesforce, HubSpot, Zoho, Dynamics 365, and custom REST/Webhook CRMs.",
+                },
+                {
+                  q: "Who uses Kashfara Voice Studio in production?",
+                  a: "jobshop.ai bought and deployed Kashfara Voice Studio to automate candidate interviews, place candidates in BPO roles, and analyze candidates' English speaking skills by capturing structured candidate inputs and generating evaluation outputs.",
+                },
+              ].map((item) => (
+                <article key={item.q} className="apple-card rounded-2xl p-6 bg-white space-y-2">
+                  <h3 className="text-sm font-semibold text-black">{item.q}</h3>
+                  <p className="text-xs sm:text-sm text-[#6E6E73] leading-relaxed">{item.a}</p>
+                </article>
+              ))}
             </div>
           </div>
         </section>

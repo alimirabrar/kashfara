@@ -858,6 +858,56 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Document Intelligence Deep Integrations, Automations & Continuous Upgrades */}
+      <section id="integrations-and-support" className="py-20 px-4 sm:px-6 bg-[#F5F5F7] border-t border-black/8">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="max-w-3xl space-y-3">
+            <div className="text-xs font-mono uppercase tracking-widest text-[#6E6E73]">
+              DEEP INTEGRATIONS, AUTOMATIONS &amp; CONTINUOUS UPGRADES
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-black">
+              Where Kashfara Document Intelligence Integrates Deeply.
+            </h2>
+            <p className="text-base text-[#6E6E73]">
+              Connect verified JSON, CSV, and RTL digital forms directly into your enterprise core—backed by continuous 4B LLM, VLM &amp; OCR upgrades and our dedicated enterprise support team.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              {
+                tag: "ERP & Tax",
+                title: "SAP, Oracle, Dynamics & ZATCA / FTA",
+                desc: "Automate 3-way AP/AR invoice matching, TRN/VAT validation, and ZATCA e-invoicing workflows with bounding-box audit proof.",
+              },
+              {
+                tag: "Banking & KYC",
+                title: "Core Banking & Loan Origination",
+                desc: "Extract Emirates IDs, Passports, Trade Licenses, and multi-page Bank Statements directly into KYC/AML and credit underwriting queues.",
+              },
+              {
+                tag: "HR & ATS",
+                title: "Workday, SuccessFactors & Custom ATS",
+                desc: "Parse Arabic & English resumes, score candidates 0–100 against Job Descriptions, and push structured profiles via REST/Webhooks.",
+              },
+              {
+                tag: "Upgrades & Support",
+                title: "Continuous 4B Upgrades & Dedicated SLA",
+                desc: "We continuously upgrade our 4B LLM, 4B VLM, and SourceMatcher OCR stack with zero-downtime on-premise drops and 24/7 engineering support.",
+              },
+            ].map((item) => (
+              <div key={item.title} className="apple-card rounded-3xl p-6 bg-white space-y-2.5">
+                <span className="inline-block text-[11px] font-mono px-2.5 py-1 rounded-full bg-[#F5F5F7] text-[#6E6E73]">
+                  {item.tag}
+                </span>
+                <h3 className="text-base font-semibold text-black pt-1">{item.title}</h3>
+                <p className="text-xs sm:text-sm text-[#6E6E73] leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section for Buyers, SEO & AI Readability */}
       <section id="faq" className="py-20 px-4 sm:px-6 bg-white border-t border-black/8">
         <div className="max-w-4xl mx-auto space-y-10">
